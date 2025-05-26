@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class HexGrid : MonoBehaviour
 {
@@ -10,6 +11,9 @@ public class HexGrid : MonoBehaviour
     private float hexWidth;       // 육각형의 가로 길이
     private float hexHeight;      // 육각형의 세로 길이
     private HexTile[,] tiles;
+    private bool isRotating = false;
+    private Vector3 lastMousePosition;
+    private List<HexTile> tilesList = new List<HexTile>();
 
     void Start()
     {
@@ -18,6 +22,37 @@ public class HexGrid : MonoBehaviour
         hexHeight = hexSize * Mathf.Sqrt(3f);     // 세로 길이 = 반지름 * √3
         
         GenerateGrid();
+        // 카메라에 맵 중앙 전달
+        CameraController camCtrl = Camera.main != null ? Camera.main.GetComponent<CameraController>() : null;
+        if (camCtrl != null)
+            camCtrl.mapCenter = GetMapCenter();
+    }
+
+    void Update()
+    {
+        // 우클릭 시작
+        if (Input.GetMouseButtonDown(1))
+        {
+            isRotating = true;
+            lastMousePosition = Input.mousePosition;
+        }
+        // 우클릭 끝
+        if (Input.GetMouseButtonUp(1))
+        {
+            isRotating = false;
+        }
+
+        // 우클릭 중 마우스 이동 시 XY축 회전
+        if (isRotating)
+        {
+            Vector3 delta = Input.mousePosition - lastMousePosition;
+            float rotationSpeed = 0.3f; // 회전 속도 조절
+            // Y축(수직축) 회전 (좌우 드래그)
+            transform.Rotate(Vector3.up, delta.x * rotationSpeed, Space.World);
+            // X축(좌우축) 회전 (상하 드래그)
+            transform.Rotate(Vector3.right, -delta.y * rotationSpeed, Space.World);
+            lastMousePosition = Input.mousePosition;
+        }
     }
 
     public void GenerateGrid()
@@ -42,28 +77,104 @@ public class HexGrid : MonoBehaviour
         }
     }
 
+    private GameObject CreateHexTileObject(Vector3 position, float radius, float height = 0.1f)
+    {
+        GameObject tile = new GameObject("HexTile");
+        tile.transform.position = position;
+
+        MeshFilter mf = tile.AddComponent<MeshFilter>();
+        MeshRenderer mr = tile.AddComponent<MeshRenderer>();
+        Mesh mesh = new Mesh();
+
+        // 꼭짓점: 윗면 6개, 아랫면 6개, 중심 2개(윗면, 아랫면)
+        Vector3[] vertices = new Vector3[14];
+        for (int i = 0; i < 6; i++)
+        {
+            float angle = Mathf.Deg2Rad * (60 * i);
+            float x = Mathf.Cos(angle) * radius;
+            float z = Mathf.Sin(angle) * radius;
+            vertices[i] = new Vector3(x, height * 0.5f, z);      // 윗면
+            vertices[i + 6] = new Vector3(x, -height * 0.5f, z); // 아랫면
+        }
+        vertices[12] = new Vector3(0, height * 0.5f, 0);   // 윗면 중심
+        vertices[13] = new Vector3(0, -height * 0.5f, 0);  // 아랫면 중심
+
+        // 삼각형 인덱스
+        System.Collections.Generic.List<int> triangles = new System.Collections.Generic.List<int>();
+
+        // 윗면
+        for (int i = 0; i < 6; i++)
+        {
+            triangles.Add(12);
+            triangles.Add(i);
+            triangles.Add((i + 1) % 6);
+        }
+        // 아랫면
+        for (int i = 0; i < 6; i++)
+        {
+            triangles.Add(13);
+            triangles.Add(6 + (i + 1) % 6);
+            triangles.Add(6 + i);
+        }
+        // 옆면
+        for (int i = 0; i < 6; i++)
+        {
+            int next = (i + 1) % 6;
+            triangles.Add(i);
+            triangles.Add(6 + i);
+            triangles.Add(6 + next);
+
+            triangles.Add(i);
+            triangles.Add(6 + next);
+            triangles.Add(next);
+        }
+
+        mesh.vertices = vertices;
+        mesh.triangles = triangles.ToArray();
+        mesh.RecalculateNormals();
+        mf.mesh = mesh;
+
+        mr.material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        mr.material.color = Color.gray;
+
+        var border = tile.AddComponent<TileBorder>();
+        border.radius = radius;
+        border.transform.localRotation = Quaternion.identity;
+
+        // HexTile 컴포넌트 강제 부착
+        var hexTile = tile.GetComponent<HexTile>();
+        if (hexTile == null)
+            hexTile = tile.AddComponent<HexTile>();
+        return tile;
+    }
+
     private void CreateHexTile(Vector2Int coordinates)
     {
-        float r = 0.5f; // 육각형의 반지름 (프리팹의 Scale.x/2)
+        float r = 0.5f;
         float width = r * 2f;
         float height = Mathf.Sqrt(3f) * r;
-
         float xPos = coordinates.x * width * 0.75f;
         float zPos = coordinates.y * height + (coordinates.x % 2 == 1 ? height / 2f : 0);
-
         Vector3 position = new Vector3(xPos, 0, zPos);
-
-        GameObject tileObject = Instantiate(hexTilePrefab, position, Quaternion.identity, transform);
+        GameObject tileObject = CreateHexTileObject(position, r, 0.1f);
+        tileObject.name = $"Hex_{coordinates.x}_{coordinates.y}";
+        // BoxCollider 추가
+        var collider = tileObject.AddComponent<BoxCollider>();
+        collider.size = new Vector3(r * 2f, 0.2f, height);
+        collider.center = new Vector3(0, 0, 0);
+        // HexTile 컴포넌트가 있으면 리스트에 추가
         HexTile tile = tileObject.GetComponent<HexTile>();
-        
         if (tile != null)
-        {
-            tile.Initialize(coordinates);
-            tile.position = position;
-            tiles[coordinates.x, coordinates.y] = tile;
-            
-            // Name the tile for easy identification
-            tileObject.name = $"Hex_{coordinates.x}_{coordinates.y}";
-        }
+            tilesList.Add(tile);
+    }
+
+    public Vector3 GetMapCenter()
+    {
+        float r = 0.5f; // 타일 반지름
+        float width = r * 2f;
+        float height = Mathf.Sqrt(3f) * r;
+        float centerX = ((mapWidth - 1) * width * 0.75f) / 2f;
+        float centerZ = ((mapHeight - 1) * height) / 2f;
+        return new Vector3(centerX, 0, centerZ);
     }
 } 
