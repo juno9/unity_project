@@ -14,6 +14,13 @@ public class HexTile : MonoBehaviour
         meshRenderer = GetComponent<MeshRenderer>();
         if (meshRenderer != null)
             originalColor = meshRenderer.material.color;
+
+        MeshFilter mf = GetComponent<MeshFilter>();
+        MeshCollider mc = GetComponent<MeshCollider>();
+        if (mc == null)
+            mc = gameObject.AddComponent<MeshCollider>();
+        if (mf != null && mc != null)
+            mc.sharedMesh = mf.sharedMesh;
     }
 
     public void Initialize(Vector2Int coords)

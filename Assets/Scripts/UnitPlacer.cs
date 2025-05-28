@@ -11,6 +11,7 @@ public class UnitPlacer : MonoBehaviour
 
     void Start()
     {
+        Debug.Log("UnitPlacer Start 실행");
         if (unitPrefab == null)
         {
             GameObject cubePrefab = new GameObject("UnitCubePrefab");
@@ -20,7 +21,7 @@ public class UnitPlacer : MonoBehaviour
         }
         if (hexGrid == null)
         {
-            hexGrid = FindObjectOfType<HexGrid>();
+            hexGrid = FindFirstObjectByType<HexGrid>();
         }
         // 유닛 배치 버튼 동적 생성 및 연결
         CreateUnitPlacementButton();
@@ -28,7 +29,7 @@ public class UnitPlacer : MonoBehaviour
 
     private void CreateUnitPlacementButton()
     {
-        Canvas canvas = FindObjectOfType<Canvas>();
+        Canvas canvas = FindFirstObjectByType<Canvas>();
         if (canvas == null)
         {
             GameObject canvasObj = new GameObject("Canvas");
@@ -37,13 +38,13 @@ public class UnitPlacer : MonoBehaviour
             canvasObj.AddComponent<CanvasScaler>();
             canvasObj.AddComponent<GraphicRaycaster>();
         }
-        GameObject buttonObj = new GameObject("UnitPlaceButton");
+        GameObject buttonObj = new GameObject("creatingUnit");
         buttonObj.transform.SetParent(canvas.transform);
         Button button = buttonObj.AddComponent<Button>();
         Image img = buttonObj.AddComponent<Image>();
         img.color = new Color(0.2f, 0.6f, 1f, 1f);
         RectTransform rt = buttonObj.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(120, 40);
+        rt.sizeDelta = new Vector2(150, 70);
         rt.anchorMin = new Vector2(1, 1);
         rt.anchorMax = new Vector2(1, 1);
         rt.pivot = new Vector2(1, 1);
@@ -52,8 +53,8 @@ public class UnitPlacer : MonoBehaviour
         GameObject textObj = new GameObject("Text");
         textObj.transform.SetParent(buttonObj.transform);
         Text text = textObj.AddComponent<Text>();
-        text.text = "유닛 배치";
-        text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        text.text = "유닛 생성";
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         text.alignment = TextAnchor.MiddleCenter;
         text.color = Color.white;
         RectTransform textRT = textObj.GetComponent<RectTransform>();
@@ -84,13 +85,15 @@ public class UnitPlacer : MonoBehaviour
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit, 100f))
         {
+            Debug.Log($"Raycast hit: {hit.collider.gameObject.name} (Layer: {hit.collider.gameObject.layer})");
             HexTile tile = hit.collider.GetComponent<HexTile>();
             if (tile != null)
             {
                 if (lastHighlightedTile != null && lastHighlightedTile != tile)
                     lastHighlightedTile.ResetHighlight();
 
-                tile.SetHighlight(Color.red);
+                // 밝은 주황색으로 하이라이트
+                tile.SetHighlight(new Color(1f, 0.7f, 0.2f));
                 lastHighlightedTile = tile;
 
                 // 좌클릭 시 유닛 배치
@@ -103,6 +106,7 @@ public class UnitPlacer : MonoBehaviour
         }
         else if (lastHighlightedTile != null)
         {
+            Debug.Log("Raycast did not hit any collider.");
             lastHighlightedTile.ResetHighlight();
             lastHighlightedTile = null;
         }
@@ -110,6 +114,7 @@ public class UnitPlacer : MonoBehaviour
 
     public void StartPlacement()
     {
+        Debug.Log("유닛 생성 버튼 클릭됨");
         isPlacing = true;
     }
 
