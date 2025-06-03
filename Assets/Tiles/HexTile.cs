@@ -1,10 +1,12 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class HexTile : MonoBehaviour
 {
     public Vector2Int coordinates; // Grid coordinates
     public Vector3 position;      // World position
     public GameObject unitOnTile;
+    public List<HexTile> neighbors = new List<HexTile>(); // 경로 탐색용 이웃 타일
     
     private MeshRenderer meshRenderer;
     private Color originalColor;

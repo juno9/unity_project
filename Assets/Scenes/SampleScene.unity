@@ -589,8 +589,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 54a6878fc674498498750e788c662617, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  unitPrefab: {fileID: 0}
+  skeletonPrefab: {fileID: 8858051749441068820, guid: 4c67ed6c086451b4db54ac4d24b626bb, type: 3}
   hexGrid: {fileID: 0}
+  unitPlacementButton: {fileID: 0}
 --- !u!1 &1510397671
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using System.Collections;
+using System.Collections.Generic;
 
 public class UnitPlacer : MonoBehaviour
 {
-    public GameObject unitPrefab;
+    [SerializeField] private GameObject skeletonPrefab; // 스켈레톤 프리팹을 Inspector에서 할당
     public HexGrid hexGrid;
     private bool isPlacing = false;
     private HexTile lastHighlightedTile = null;
@@ -27,75 +29,12 @@ public class UnitPlacer : MonoBehaviour
             turnManagerObj.AddComponent<TurnManager>();
         }
 
-        if (unitPrefab == null)
+        if (skeletonPrefab == null)
         {
-            // 프리팹 생성
-            GameObject cubePrefab = new GameObject("UnitCubePrefab");
-            
-            // 필요한 컴포넌트 추가
-            MeshFilter mf = cubePrefab.AddComponent<MeshFilter>();
-            MeshRenderer mr = cubePrefab.AddComponent<MeshRenderer>();
-            Unit unit = cubePrefab.AddComponent<Unit>();
-            BoxCollider collider = cubePrefab.AddComponent<BoxCollider>();
-            collider.size = Vector3.one * 0.7f; // 유닛 크기에 맞게 조정
-            
-            // 큐브 메시 생성
-            Mesh cubeMesh = new Mesh();
-            Vector3[] vertices = new Vector3[8];
-            vertices[0] = new Vector3(-0.5f, -0.5f, -0.5f);
-            vertices[1] = new Vector3(0.5f, -0.5f, -0.5f);
-            vertices[2] = new Vector3(0.5f, 0.5f, -0.5f);
-            vertices[3] = new Vector3(-0.5f, 0.5f, -0.5f);
-            vertices[4] = new Vector3(-0.5f, -0.5f, 0.5f);
-            vertices[5] = new Vector3(0.5f, -0.5f, 0.5f);
-            vertices[6] = new Vector3(0.5f, 0.5f, 0.5f);
-            vertices[7] = new Vector3(-0.5f, 0.5f, 0.5f);
-
-            int[] triangles = new int[36];
-            // 앞면
-            triangles[0] = 0; triangles[1] = 2; triangles[2] = 1;
-            triangles[3] = 0; triangles[4] = 3; triangles[5] = 2;
-            // 뒷면
-            triangles[6] = 5; triangles[7] = 7; triangles[8] = 4;
-            triangles[9] = 5; triangles[10] = 6; triangles[11] = 7;
-            // 윗면
-            triangles[12] = 3; triangles[13] = 7; triangles[14] = 6;
-            triangles[15] = 3; triangles[16] = 6; triangles[17] = 2;
-            // 아랫면
-            triangles[18] = 1; triangles[19] = 5; triangles[20] = 4;
-            triangles[21] = 1; triangles[22] = 4; triangles[23] = 0;
-            // 왼쪽면
-            triangles[24] = 0; triangles[25] = 4; triangles[26] = 7;
-            triangles[27] = 0; triangles[28] = 7; triangles[29] = 3;
-            // 오른쪽면
-            triangles[30] = 1; triangles[31] = 2; triangles[32] = 6;
-            triangles[33] = 1; triangles[34] = 6; triangles[35] = 5;
-
-            cubeMesh.vertices = vertices;
-            cubeMesh.triangles = triangles;
-            cubeMesh.RecalculateNormals();
-            cubeMesh.RecalculateBounds();
-
-            mf.mesh = cubeMesh;
-
-            // 머티리얼 설정
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null)
-            {
-                shader = Shader.Find("Standard");
-            }
-            if (shader != null)
-            {
-                mr.material = new Material(shader);
-                mr.material.color = player1Color;
-            }
-            
-            // 크기 설정
-            cubePrefab.transform.localScale = Vector3.one * 0.7f;
-            
-            unitPrefab = cubePrefab;
-            unitPrefab.SetActive(false);
+            Debug.LogError("Skeleton Prefab이 할당되지 않았습니다. Inspector에서 Skeleton Prefab을 할당해주세요.");
+            return;
         }
+
         if (hexGrid == null)
         {
             hexGrid = FindFirstObjectByType<HexGrid>();
@@ -155,12 +94,12 @@ public class UnitPlacer : MonoBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit, 100f))
         {
             // 유닛 선택 처리
-            Unit hitUnit = hit.collider.GetComponent<Unit>();
+            Unit hitUnit = hit.collider.GetComponentInParent<Unit>();
             if (hitUnit != null)
             {
                 if (Input.GetMouseButtonDown(0))
                 {
-                    // 유닛 정보 표시
+                    Debug.Log("유닛 클릭됨: " + hitUnit.name);
                     TurnManager.Instance.ShowUnitInfo(hitUnit);
                     
                     if (TurnManager.Instance.IsUnitSelectable(hitUnit))
@@ -175,6 +114,7 @@ public class UnitPlacer : MonoBehaviour
             HexTile tile = hit.collider.GetComponent<HexTile>();
             if (tile != null)
             {
+                Debug.Log($"클릭된 타일: {tile.name}, coordinates: {tile.coordinates}");
                 if (isPlacing)
                 {
                     if (lastHighlightedTile != null && lastHighlightedTile != tile)
@@ -226,47 +166,128 @@ public class UnitPlacer : MonoBehaviour
 
     private void PlaceUnit(HexTile tile)
     {
+        if (tile == null)
+        {
+            Debug.LogError("PlaceUnit: 전달된 tile이 null입니다.");
+            return;
+        }
+        var gridTile = hexGrid.GetTileAt(tile.coordinates);
+        if (gridTile == null)
+        {
+            Debug.LogError($"PlaceUnit: hexGrid.GetTileAt로 얻은 tile이 null입니다. coordinates: {tile.coordinates}");
+            return;
+        }
+        tile = gridTile;
+        if (tile.unitOnTile != null)
+        {
+            Debug.Log("이미 유닛이 배치된 타일입니다.");
+            return;
+        }
         if (tile.unitOnTile == null)
         {
-            GameObject newUnit = Instantiate(unitPrefab, tile.transform.position + Vector3.up * 0.6f, Quaternion.identity);
+            GameObject newUnit = Instantiate(skeletonPrefab, tile.transform.position, Quaternion.identity);
             newUnit.transform.SetParent(tile.transform);
             newUnit.name = $"Unit_{tile.coordinates.x}_{tile.coordinates.y}";
             
             Unit unit = newUnit.GetComponent<Unit>();
-            unit.playerId = TurnManager.Instance.currentPlayer;
-            
-            MeshRenderer mr = newUnit.GetComponent<MeshRenderer>();
-            if (mr != null)
+            if (unit == null)
             {
-                mr.material.color = unit.playerId == 1 ? player1Color : player2Color;
+                unit = newUnit.AddComponent<Unit>();
+            }
+            unit.playerId = TurnManager.Instance.currentPlayer;
+
+            // URP용 머티리얼 자동 할당 및 플레이어별 텍스처 적용
+            Transform geoMesh = newUnit.transform.Find("Geometry/geo/Skeleton");
+            if (geoMesh != null)
+            {
+                var smr = geoMesh.GetComponent<SkinnedMeshRenderer>();
+                if (smr != null)
+                {
+                    Shader urpShader = Shader.Find("Universal Render Pipeline/Lit");
+                    if (urpShader != null)
+                    {
+                        Material urpMat = new Material(urpShader);
+                        // 플레이어별 텍스처 경로 지정 (tga 확장자, 파일명 반영)
+                        string texPath = unit.playerId == 1
+                            ? "Skeleton/Textures/SceletonVersion2"
+                            : "Skeleton/Textures/SceletonVersion3";
+                        Texture2D tex = Resources.Load<Texture2D>(texPath);
+                        if (tex != null)
+                        {
+                            urpMat.mainTexture = tex;
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"텍스처를 찾을 수 없습니다: {texPath}");
+                        }
+                        smr.material = urpMat;
+                    }
+                    else
+                    {
+                        Debug.LogError("URP용 Shader를 찾을 수 없습니다. Universal Render Pipeline/Lit이 프로젝트에 포함되어 있는지 확인하세요.");
+                    }
+                }
             }
 
-            // Collider 추가
-            BoxCollider collider = newUnit.GetComponent<BoxCollider>();
-            collider.size = Vector3.one * 0.7f; // 유닛 크기에 맞게 조정
-            
             newUnit.SetActive(true);
+
+            // Collider가 없으면 자동으로 BoxCollider 추가
+            if (newUnit.GetComponent<Collider>() == null)
+            {
+                BoxCollider col = newUnit.AddComponent<BoxCollider>();
+                // 필요하다면 col.center, col.size 조정 (기본값 사용)
+            }
+
+            unit.currentTile = tile;
             tile.unitOnTile = newUnit;
-            
+            Debug.Log($"[배치] {unit.name}의 currentTile: {unit.currentTile != null}, tile: {tile.coordinates}");
             TurnManager.Instance.RegisterUnit(unit);
         }
     }
 
     private void MoveUnit(HexTile targetTile)
     {
-        if (targetTile.unitOnTile == null)
+        if (selectedUnit == null) { Debug.Log("selectedUnit is null"); return; }
+        HexTile currentTile = hexGrid.GetTileAt(selectedUnit.currentTile.coordinates);
+        targetTile = hexGrid.GetTileAt(targetTile.coordinates);
+        if (currentTile == null) { Debug.Log("currentTile is null"); return; }
+        if (targetTile == null) { Debug.Log("targetTile is null"); return; }
+        if (targetTile.unitOnTile != null) { Debug.Log("targetTile already has a unit"); return; }
+        Debug.Log($"currentTile: {currentTile.coordinates}, neighbors: {currentTile.neighbors.Count}");
+        Debug.Log($"targetTile: {targetTile.coordinates}, neighbors: {targetTile.neighbors.Count}");
+        var path = hexGrid.FindPath(currentTile, targetTile);
+        if (path == null) { Debug.Log("No path found"); return; }
+        if (path.Count < 2) { Debug.Log("Path too short"); return; }
+        Debug.Log("MoveUnit: path found, starting coroutine");
+        currentTile.unitOnTile = null;
+        StartCoroutine(MoveUnitAlongPath(selectedUnit, path, targetTile));
+    }
+
+    private IEnumerator MoveUnitAlongPath(Unit unit, List<HexTile> path, HexTile targetTile)
+    {
+        Debug.Log("MoveUnitAlongPath started");
+        Animator animator = unit.GetComponentInChildren<Animator>();
+        if (animator != null) animator.SetBool("isWalking", true);
+        for (int i = 1; i < path.Count; i++)
         {
-            HexTile currentTile = selectedUnit.GetComponentInParent<HexTile>();
-            if (currentTile != null)
+            Vector3 start = unit.transform.position;
+            Vector3 end = path[i].transform.position;
+            float t = 0;
+            while (t < 1f)
             {
-                currentTile.unitOnTile = null;
-                selectedUnit.transform.SetParent(targetTile.transform);
-                selectedUnit.transform.position = targetTile.transform.position + Vector3.up * 0.6f;
-                targetTile.unitOnTile = selectedUnit.gameObject;
-                selectedUnit.hasMoved = true;
-                selectedUnit = null;
+                t += Time.deltaTime * 3f; // 속도 조절
+                unit.transform.position = Vector3.Lerp(start, end, t);
+                yield return null;
             }
+            unit.transform.position = end;
         }
+        if (animator != null) animator.SetBool("isWalking", false);
+        unit.transform.SetParent(targetTile.transform);
+        unit.currentTile = targetTile;
+        targetTile.unitOnTile = unit.gameObject;
+        unit.hasMoved = true;
+        selectedUnit = null;
+        Debug.Log($"[이동] {unit.name}의 currentTile: {unit.currentTile != null}, tile: {targetTile.coordinates}");
     }
 
     public void StartPlacement()

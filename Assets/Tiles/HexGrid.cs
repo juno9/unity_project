@@ -75,6 +75,31 @@ public class HexGrid : MonoBehaviour
                 CreateHexTile(new Vector2Int(x, y));
             }
         }
+
+        // 모든 타일의 neighbors 리스트 채우기
+        for (int y = 0; y < mapHeight; y++)
+        {
+            for (int x = 0; x < mapWidth; x++)
+            {
+                HexTile tile = tiles[x, y];
+                if (tile == null) continue;
+                tile.neighbors.Clear();
+                // 육각형 격자 기준 6방향
+                int[][] evenDirs = new int[][] { new[]{+1,0}, new[]{0,-1}, new[]{-1,-1}, new[]{-1,0}, new[]{-1,+1}, new[]{0,+1} };
+                int[][] oddDirs  = new int[][] { new[]{+1,0}, new[]{+1,-1}, new[]{0,-1}, new[]{-1,0}, new[]{0,+1}, new[]{+1,+1} };
+                int[][] dirs = (x % 2 == 0) ? evenDirs : oddDirs;
+                foreach (var d in dirs)
+                {
+                    int nx = x + d[0];
+                    int ny = y + d[1];
+                    if (nx >= 0 && nx < mapWidth && ny >= 0 && ny < mapHeight)
+                    {
+                        if (tiles[nx, ny] != null)
+                            tile.neighbors.Add(tiles[nx, ny]);
+                    }
+                }
+            }
+        }
     }
 
     private GameObject CreateHexTileObject(Vector3 position, float radius, float height = 0.1f)
@@ -162,10 +187,14 @@ public class HexGrid : MonoBehaviour
         var collider = tileObject.AddComponent<BoxCollider>();
         collider.size = new Vector3(r * 2f, 0.2f, height);
         collider.center = new Vector3(0, 0, 0);
-        // HexTile 컴포넌트가 있으면 리스트에 추가
+        // HexTile 컴포넌트가 있으면 배열과 리스트에 추가
         HexTile tile = tileObject.GetComponent<HexTile>();
         if (tile != null)
+        {
+            tile.Initialize(coordinates);
+            tiles[coordinates.x, coordinates.y] = tile;
             tilesList.Add(tile);
+        }
     }
 
     public Vector3 GetMapCenter()
@@ -176,5 +205,63 @@ public class HexGrid : MonoBehaviour
         float centerX = ((mapWidth - 1) * width * 0.75f) / 2f;
         float centerZ = ((mapHeight - 1) * height) / 2f;
         return new Vector3(centerX, 0, centerZ);
+    }
+
+    // A* 경로 탐색 함수
+    public List<HexTile> FindPath(HexTile start, HexTile goal)
+    {
+        var openSet = new List<HexTile> { start };
+        var cameFrom = new Dictionary<HexTile, HexTile>();
+        var gScore = new Dictionary<HexTile, int>();
+        var fScore = new Dictionary<HexTile, int>();
+        gScore[start] = 0;
+        fScore[start] = Heuristic(start, goal);
+        while (openSet.Count > 0)
+        {
+            // fScore가 가장 낮은 타일 선택
+            HexTile current = openSet[0];
+            foreach (var t in openSet)
+                if (fScore.ContainsKey(t) && fScore[t] < fScore[current]) current = t;
+            if (current == goal)
+                return ReconstructPath(cameFrom, current);
+            openSet.Remove(current);
+            foreach (var neighbor in current.neighbors)
+            {
+                if (neighbor.unitOnTile != null && neighbor != goal) continue; // 유닛이 있으면 통과 불가
+                int tentative_gScore = gScore[current] + 1;
+                if (!gScore.ContainsKey(neighbor) || tentative_gScore < gScore[neighbor])
+                {
+                    cameFrom[neighbor] = current;
+                    gScore[neighbor] = tentative_gScore;
+                    fScore[neighbor] = gScore[neighbor] + Heuristic(neighbor, goal);
+                    if (!openSet.Contains(neighbor)) openSet.Add(neighbor);
+                }
+            }
+        }
+        return null; // 경로 없음
+    }
+
+    private int Heuristic(HexTile a, HexTile b)
+    {
+        // 맨해튼 거리 (육각형 격자)
+        return Mathf.Abs(a.coordinates.x - b.coordinates.x) + Mathf.Abs(a.coordinates.y - b.coordinates.y);
+    }
+
+    private List<HexTile> ReconstructPath(Dictionary<HexTile, HexTile> cameFrom, HexTile current)
+    {
+        var totalPath = new List<HexTile> { current };
+        while (cameFrom.ContainsKey(current))
+        {
+            current = cameFrom[current];
+            totalPath.Insert(0, current);
+        }
+        return totalPath;
+    }
+
+    public HexTile GetTileAt(Vector2Int coords)
+    {
+        if (tiles == null) return null;
+        if (coords.x < 0 || coords.x >= mapWidth || coords.y < 0 || coords.y >= mapHeight) return null;
+        return tiles[coords.x, coords.y];
     }
 } 
