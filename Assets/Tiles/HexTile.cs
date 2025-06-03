@@ -50,10 +50,33 @@ public class HexTile : MonoBehaviour
 
     public void PlaceUnit(GameObject unitPrefab)
     {
-        if (unitOnTile == null)
+        if (unitOnTile == null && unitPrefab != null)
         {
-            unitOnTile = GameObject.Instantiate(unitPrefab, transform.position + Vector3.up * 0.6f, Quaternion.identity);
-            unitOnTile.SetActive(true);
+            try
+            {
+                // 유닛 생성 및 위치 설정
+                unitOnTile = Instantiate(unitPrefab, transform.position + Vector3.up * 0.6f, Quaternion.identity);
+                
+                // 부모 설정
+                unitOnTile.transform.SetParent(transform);
+                
+                // 이름 설정
+                unitOnTile.name = "Unit_" + coordinates.x + "_" + coordinates.y;
+                
+                // 활성화
+                unitOnTile.SetActive(true);
+                
+                Debug.Log($"Unit placed at tile ({coordinates.x}, {coordinates.y})");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Error placing unit: {e.Message}");
+                if (unitOnTile != null)
+                {
+                    Destroy(unitOnTile);
+                    unitOnTile = null;
+                }
+            }
         }
     }
 } 

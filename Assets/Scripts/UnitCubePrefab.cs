@@ -5,23 +5,7 @@ using UnityEditor;
 
 public class UnitCubePrefab : MonoBehaviour
 {
-    void Awake()
-    {
-        var mr = gameObject.AddComponent<MeshRenderer>();
-        var mf = gameObject.AddComponent<MeshFilter>();
-        mf.mesh = CreateCubeMesh();
-        mr.material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        mr.material.color = Color.blue;
-        gameObject.transform.localScale = Vector3.one * 0.7f;
-    }
-
-    Mesh CreateCubeMesh()
-    {
-        GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        Mesh mesh = temp.GetComponent<MeshFilter>().sharedMesh;
-        Destroy(temp);
-        return mesh;
-    }
+    // Awake 메서드 제거 - 초기화는 UnitPlacer에서 처리
 
 #if UNITY_EDITOR
     [MenuItem("GameObject/Create HexTile Prefab", false, 10)]
@@ -31,8 +15,20 @@ public class UnitCubePrefab : MonoBehaviour
         var mf = hexTile.AddComponent<MeshFilter>();
         var mr = hexTile.AddComponent<MeshRenderer>();
         mf.mesh = CreateHexMesh();
-        mr.material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        mr.material.color = Color.green;
+        
+        // Try URP shader first, fall back to standard shader if not available
+        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+        if (shader == null)
+        {
+            shader = Shader.Find("Standard");
+        }
+        
+        if (shader != null)
+        {
+            mr.material = new Material(shader);
+            mr.material.color = Color.green;
+        }
+        
         PrefabUtility.SaveAsPrefabAsset(hexTile, "Assets/Prefabs/HexTile.prefab");
         DestroyImmediate(hexTile);
         Debug.Log("HexTile.prefab has been created in Assets/Prefabs");
