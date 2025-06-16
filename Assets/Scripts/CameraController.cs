@@ -11,7 +11,7 @@ public class CameraController : MonoBehaviour
     void Start()
     {
         float camHeight = 7f;
-        float camDistance = 10f;
+        float camDistance = 2f;
         // mapCenter는 HexGrid에서 할당해줌
         transform.position = new Vector3(mapCenter.x, camHeight, mapCenter.z - camDistance);
         transform.LookAt(new Vector3(mapCenter.x, 0, mapCenter.z));
