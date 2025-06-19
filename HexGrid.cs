@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class HexGrid : MonoBehaviour
 {
@@ -69,5 +70,31 @@ public class HexGrid : MonoBehaviour
             // Name the tile for easy identification
             tileObject.name = $"Hex_{coordinates.x}_{coordinates.y}";
         }
+    }
+
+    public HexTile GetTileAt(Vector2Int coordinates)
+    {
+        if (coordinates.x >= 0 && coordinates.x < mapWidth && 
+            coordinates.y >= 0 && coordinates.y < mapHeight)
+        {
+            return tiles[coordinates.x, coordinates.y];
+        }
+        return null;
+    }
+
+    public List<HexTile> GetAllTiles()
+    {
+        List<HexTile> allTiles = new List<HexTile>();
+        for (int y = 0; y < mapHeight; y++)
+        {
+            for (int x = 0; x < mapWidth; x++)
+            {
+                if (tiles[x, y] != null)
+                {
+                    allTiles.Add(tiles[x, y]);
+                }
+            }
+        }
+        return allTiles;
     }
 } 

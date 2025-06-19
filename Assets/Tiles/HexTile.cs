@@ -5,7 +5,7 @@ public class HexTile : MonoBehaviour
 {
     public Vector2Int coordinates; // Grid coordinates
     public Vector3 position;      // World position
-    public GameObject unitOnTile;
+    public Unit unitOnTile;       // 이 타일에 있는 유닛
     public List<HexTile> neighbors = new List<HexTile>(); // 경로 탐색용 이웃 타일
     
     private MeshRenderer meshRenderer;
@@ -50,6 +50,23 @@ public class HexTile : MonoBehaviour
             meshRenderer.material.color = originalColor;
     }
 
+    // 두 타일 간의 거리 계산 (육각형 그리드)
+    public int GetDistanceTo(HexTile other)
+    {
+        if (other == null) return int.MaxValue;
+        
+        Vector2Int delta = coordinates - other.coordinates;
+        
+        // 육각형 그리드에서의 거리 계산
+        int distance = Mathf.Max(
+            Mathf.Abs(delta.x),
+            Mathf.Abs(delta.y),
+            Mathf.Abs(delta.x + delta.y)
+        );
+        
+        return distance;
+    }
+
     public void PlaceUnit(GameObject unitPrefab)
     {
         if (unitOnTile == null && unitPrefab != null)
@@ -57,16 +74,27 @@ public class HexTile : MonoBehaviour
             try
             {
                 // 유닛 생성 및 위치 설정
-                unitOnTile = Instantiate(unitPrefab, transform.position + Vector3.up * 0.6f, Quaternion.identity);
+                GameObject unitObject = Instantiate(unitPrefab, transform.position + Vector3.up * 0.6f, Quaternion.identity);
                 
                 // 부모 설정
-                unitOnTile.transform.SetParent(transform);
+                unitObject.transform.SetParent(transform);
                 
                 // 이름 설정
-                unitOnTile.name = "Unit_" + coordinates.x + "_" + coordinates.y;
+                unitObject.name = "Unit_" + coordinates.x + "_" + coordinates.y;
+                
+                // Unit 컴포넌트 가져오기
+                Unit unit = unitObject.GetComponent<Unit>();
+                if (unit == null)
+                {
+                    unit = unitObject.AddComponent<Unit>();
+                }
+                
+                // 타일과 유닛 연결
+                unitOnTile = unit;
+                unit.currentTile = this;
                 
                 // 활성화
-                unitOnTile.SetActive(true);
+                unitObject.SetActive(true);
                 
                 Debug.Log($"Unit placed at tile ({coordinates.x}, {coordinates.y})");
             }
@@ -75,7 +103,7 @@ public class HexTile : MonoBehaviour
                 Debug.LogError($"Error placing unit: {e.Message}");
                 if (unitOnTile != null)
                 {
-                    Destroy(unitOnTile);
+                    Destroy(unitOnTile.gameObject);
                     unitOnTile = null;
                 }
             }

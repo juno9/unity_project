@@ -264,4 +264,20 @@ public class HexGrid : MonoBehaviour
         if (coords.x < 0 || coords.x >= mapWidth || coords.y < 0 || coords.y >= mapHeight) return null;
         return tiles[coords.x, coords.y];
     }
+
+    public List<HexTile> GetAllTiles()
+    {
+        List<HexTile> allTiles = new List<HexTile>();
+        for (int y = 0; y < mapHeight; y++)
+        {
+            for (int x = 0; x < mapWidth; x++)
+            {
+                if (tiles[x, y] != null)
+                {
+                    allTiles.Add(tiles[x, y]);
+                }
+            }
+        }
+        return allTiles;
+    }
 } 
