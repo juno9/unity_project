@@ -10,6 +10,7 @@ public class FogOfWar : MonoBehaviour
     [SerializeField] private float fogUpdateInterval = 0.5f; // 안개 업데이트 주기
     [SerializeField] private int mapWidth = 20; // 맵의 가로 타일 수 (HexGrid와 맞추세요)
     [SerializeField] private int mapHeight = 20; // 맵의 세로 타일 수 (HexGrid와 맞추세요)
+    [SerializeField] private bool enableFogOfWar = true; // 전장의 안개 활성화/비활성화
     
     private float nextUpdateTime;
     private GameObject fogPlane;
@@ -21,6 +22,7 @@ public class FogOfWar : MonoBehaviour
     private Color colorVisible = new Color(0,0,0,0); // 밝은 시야(투명)
     private Camera mainCam;
     private float fogPlaneDistance = 10f; // 카메라에서 얼마나 떨어진 곳에 Fog Plane을 둘지
+    private int currentPlayer = 1; // 현재 플레이어
 
     void Start()
     {
@@ -32,6 +34,12 @@ public class FogOfWar : MonoBehaviour
             fogMaterial.SetTexture("_FogTexture", fogTexture);
         CreateFogPlaneForCamera();
         EnsureUnitExistsOrSpawn();
+        
+        // TurnManager에 등록
+        if (TurnManager.Instance != null)
+        {
+            TurnManager.Instance.RegisterFogOfWar(this);
+        }
     }
 
     void CreateFogPlaneForCamera()
@@ -90,19 +98,42 @@ public class FogOfWar : MonoBehaviour
         }
     }
 
+    // 현재 플레이어 변경 시 호출
+    public void OnPlayerTurnChanged(int newPlayer)
+    {
+        currentPlayer = newPlayer;
+        Debug.Log($"FogOfWar: 플레이어 {currentPlayer}의 턴으로 변경됨");
+        UpdateFog(); // 즉시 안개 업데이트
+    }
+
     void UpdateFog()
     {
+        if (!enableFogOfWar)
+        {
+            // 안개 비활성화 시 모든 타일을 밝게
+            for (int x = 0; x < mapWidth; x++)
+                for (int y = 0; y < mapHeight; y++)
+                    fogState[x, y] = 2;
+            UpdateFogTexture();
+            return;
+        }
+
         // 1. 이전 밝음(2) → 전장의 안개(1)로 낮춤
         for (int x = 0; x < mapWidth; x++)
             for (int y = 0; y < mapHeight; y++)
                 if (fogState[x, y] == 2) fogState[x, y] = 1;
-        // 2. 모든 유닛의 시야 내 타일 밝게(2)
-        foreach (Unit unit in FindObjectsOfType<Unit>())
+        
+        // 2. 현재 플레이어의 유닛들만 시야 계산
+        Unit[] allUnits = FindObjectsOfType<Unit>();
+        foreach (Unit unit in allUnits)
         {
-            foreach (Vector2Int tile in GetHexTilesInSight(unit))
+            if (unit.playerId == currentPlayer) // 현재 플레이어의 유닛만
             {
-                if (tile.x >= 0 && tile.x < mapWidth && tile.y >= 0 && tile.y < mapHeight)
-                    fogState[tile.x, tile.y] = 2;
+                foreach (Vector2Int tile in GetHexTilesInSight(unit))
+                {
+                    if (tile.x >= 0 && tile.x < mapWidth && tile.y >= 0 && tile.y < mapHeight)
+                        fogState[tile.x, tile.y] = 2;
+                }
             }
         }
         UpdateFogTexture();

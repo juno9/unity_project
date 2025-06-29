@@ -28,6 +28,8 @@ public class UnitPlacer : MonoBehaviour
     public Button moveButton; // 이동 버튼 추가
     private bool isMoving = false; // 이동 모드 추가
     private List<HexTile> moveRangeTiles = new List<HexTile>(); // 이동 범위 타일들
+    private bool isRangedPlacing = false;
+    public Button rangedUnitPlacementButton;
 
     void Start()
     {
@@ -62,6 +64,7 @@ public class UnitPlacer : MonoBehaviour
         }
         // 유닛 배치 버튼 동적 생성 및 연결
         CreateUnitPlacementButton();
+        CreateRangedUnitPlacementButton();
         CreateAttackButton();
         CreateMoveButton();
     }
@@ -103,6 +106,40 @@ public class UnitPlacer : MonoBehaviour
         textRT.offsetMax = Vector2.zero;
         // 버튼 클릭 이벤트 연결
         unitPlacementButton.onClick.AddListener(StartPlacement);
+    }
+
+    private void CreateRangedUnitPlacementButton()
+    {
+        Canvas canvas = FindFirstObjectByType<Canvas>();
+        if (canvas == null) return;
+
+        GameObject buttonObj = new GameObject("RangedUnitButton");
+        buttonObj.transform.SetParent(canvas.transform);
+        rangedUnitPlacementButton = buttonObj.AddComponent<Button>();
+        Image img = buttonObj.AddComponent<Image>();
+        img.color = new Color(0.8f, 0.5f, 1f, 1f); // 보라색 계열
+        RectTransform rt = buttonObj.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(150, 70);
+        rt.anchorMin = new Vector2(1, 1);
+        rt.anchorMax = new Vector2(1, 1);
+        rt.pivot = new Vector2(1, 1);
+        rt.anchoredPosition = new Vector2(-20, -100); // 기존 유닛 배치 버튼 아래
+
+        // 텍스트 추가
+        GameObject textObj = new GameObject("Text");
+        textObj.transform.SetParent(buttonObj.transform);
+        Text text = textObj.AddComponent<Text>();
+        text.text = "원거리 유닛 배치";
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.alignment = TextAnchor.MiddleCenter;
+        text.color = Color.white;
+        RectTransform textRT = textObj.GetComponent<RectTransform>();
+        textRT.anchorMin = Vector2.zero;
+        textRT.anchorMax = Vector2.one;
+        textRT.offsetMin = Vector2.zero;
+        textRT.offsetMax = Vector2.zero;
+
+        rangedUnitPlacementButton.onClick.AddListener(StartRangedPlacement);
     }
 
     private void CreateAttackButton()
@@ -348,6 +385,7 @@ public class UnitPlacer : MonoBehaviour
                 unit = newUnit.AddComponent<Unit>();
             }
             unit.playerId = TurnManager.Instance.currentPlayer;
+            unit.attackRange = isRangedPlacing ? 10 : 1; // 원거리/근거리 구분
 
             // URP용 머티리얼 자동 할당 및 플레이어별 텍스처 적용
             Transform geoMesh = newUnit.transform.Find("Geometry/geo/Skeleton");
@@ -395,6 +433,7 @@ public class UnitPlacer : MonoBehaviour
             tile.unitOnTile = unit;
             Debug.Log($"[배치] {unit.name}의 currentTile: {unit.currentTile != null}, tile: {tile.coordinates}");
             TurnManager.Instance.RegisterUnit(unit);
+            isRangedPlacing = false; // 배치 후 리셋
         }
     }
 
@@ -457,6 +496,13 @@ public class UnitPlacer : MonoBehaviour
             lastHighlightedTile.ResetHighlight();
             lastHighlightedTile = null;
         }
+    }
+
+    private void StartRangedPlacement()
+    {
+        isPlacing = true;
+        isRangedPlacing = true;
+        // 기존 StartPlacement와 동일하게 동작
     }
 
     // 커서 변경 메서드들

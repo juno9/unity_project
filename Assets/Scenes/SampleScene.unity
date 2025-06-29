@@ -274,6 +274,9 @@ MonoBehaviour:
   minPosition: {x: 0, y: 0}
   maxPosition: {x: 20, y: 15}
   mapCenter: {x: 0, y: 0, z: 0}
+  enableTurnTransition: 1
+  turnTransitionHeight: 10
+  turnTransitionDistance: 5
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -596,6 +599,7 @@ MonoBehaviour:
   unitPlacementButton: {fileID: 0}
   attackButton: {fileID: 0}
   moveButton: {fileID: 0}
+  rangedUnitPlacementButton: {fileID: 0}
 --- !u!1 &1330937881
 GameObject:
   m_ObjectHideFlags: 0

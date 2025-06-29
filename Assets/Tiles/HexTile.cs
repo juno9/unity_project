@@ -10,6 +10,7 @@ public class HexTile : MonoBehaviour
     
     private MeshRenderer meshRenderer;
     private Color originalColor;
+    private bool isOccupied = false; // 타일 점유 상태
 
     private void Awake()
     {
@@ -50,6 +51,18 @@ public class HexTile : MonoBehaviour
             meshRenderer.material.color = originalColor;
     }
 
+    // 타일 점유 상태 확인
+    public bool IsOccupied()
+    {
+        return isOccupied || unitOnTile != null;
+    }
+
+    // 타일 점유 상태 설정
+    public void SetOccupied(bool occupied)
+    {
+        isOccupied = occupied;
+    }
+
     // 두 타일 간의 거리 계산 (육각형 그리드)
     public int GetDistanceTo(HexTile other)
     {
@@ -67,46 +80,27 @@ public class HexTile : MonoBehaviour
         return distance;
     }
 
-    public void PlaceUnit(GameObject unitPrefab)
+    public void PlaceUnit(GameObject unitObject)
     {
-        if (unitOnTile == null && unitPrefab != null)
+        if (unitOnTile == null && unitObject != null)
         {
-            try
+            // 위치만 맞추고, 회전은 건드리지 않음
+            unitObject.transform.position = transform.position + Vector3.up * 0.6f;
+            unitObject.transform.SetParent(transform);
+            // 이름 설정
+            unitObject.name = "Unit_" + coordinates.x + "_" + coordinates.y;
+            // Unit 컴포넌트 가져오기
+            Unit unit = unitObject.GetComponent<Unit>();
+            if (unit == null)
             {
-                // 유닛 생성 및 위치 설정
-                GameObject unitObject = Instantiate(unitPrefab, transform.position + Vector3.up * 0.6f, Quaternion.identity);
-                
-                // 부모 설정
-                unitObject.transform.SetParent(transform);
-                
-                // 이름 설정
-                unitObject.name = "Unit_" + coordinates.x + "_" + coordinates.y;
-                
-                // Unit 컴포넌트 가져오기
-                Unit unit = unitObject.GetComponent<Unit>();
-                if (unit == null)
-                {
-                    unit = unitObject.AddComponent<Unit>();
-                }
-                
-                // 타일과 유닛 연결
-                unitOnTile = unit;
-                unit.currentTile = this;
-                
-                // 활성화
-                unitObject.SetActive(true);
-                
-                Debug.Log($"Unit placed at tile ({coordinates.x}, {coordinates.y})");
+                unit = unitObject.AddComponent<Unit>();
             }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"Error placing unit: {e.Message}");
-                if (unitOnTile != null)
-                {
-                    Destroy(unitOnTile.gameObject);
-                    unitOnTile = null;
-                }
-            }
+            // 타일과 유닛 연결
+            unitOnTile = unit;
+            unit.currentTile = this;
+            isOccupied = true;
+            unitObject.SetActive(true);
+            Debug.Log($"Unit placed at tile ({coordinates.x}, {coordinates.y})");
         }
     }
 } 

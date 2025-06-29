@@ -15,6 +15,8 @@ public class TurnManager : MonoBehaviour
 
     private List<Unit> player1Units = new List<Unit>();
     private List<Unit> player2Units = new List<Unit>();
+    private CameraController cameraController; // 카메라 컨트롤러 참조
+    private FogOfWar fogOfWar; // 전장의 안개 참조
 
     private void Awake()
     {
@@ -31,6 +33,20 @@ public class TurnManager : MonoBehaviour
     private void Start()
     {
         CreateUI();
+    }
+
+    // 카메라 컨트롤러 등록
+    public void RegisterCameraController(CameraController controller)
+    {
+        cameraController = controller;
+        Debug.Log("카메라 컨트롤러가 TurnManager에 등록되었습니다.");
+    }
+
+    // 전장의 안개 등록
+    public void RegisterFogOfWar(FogOfWar fog)
+    {
+        fogOfWar = fog;
+        Debug.Log("전장의 안개가 TurnManager에 등록되었습니다.");
     }
 
     private void CreateUI()
@@ -105,7 +121,7 @@ public class TurnManager : MonoBehaviour
         endTurnButton.onClick.AddListener(EndTurn);
     }
 
-    private void UpdateButtonColors()
+    public void UpdateButtonColors()
     {
         Color currentColor = currentPlayer == 1 ? player1Color : player2Color;
         
@@ -179,9 +195,33 @@ public class TurnManager : MonoBehaviour
         }
 
         // 다음 플레이어로 턴 전환
+        int previousPlayer = currentPlayer;
         currentPlayer = currentPlayer == 1 ? 2 : 1;
+        
+        // 카메라 전환
+        Debug.Log($"카메라 전환 시도: cameraController={cameraController != null}, targetPlayer={currentPlayer}");
+        if (cameraController != null)
+        {
+            cameraController.TransitionToPlayerView(currentPlayer);
+        }
+        else
+        {
+            Debug.LogWarning("cameraController가 null입니다. 카메라 전환이 작동하지 않습니다.");
+        }
+        
+        // 전장의 안개 업데이트
+        if (fogOfWar != null)
+        {
+            fogOfWar.OnPlayerTurnChanged(currentPlayer);
+        }
+        else
+        {
+            Debug.LogWarning("fogOfWar가 null입니다. 전장의 안개가 업데이트되지 않습니다.");
+        }
         
         // 버튼 색상 업데이트
         UpdateButtonColors();
+        
+        Debug.Log($"플레이어 {previousPlayer}의 턴이 종료되고 플레이어 {currentPlayer}의 턴이 시작되었습니다.");
     }
 } 
