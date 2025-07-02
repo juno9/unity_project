@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class CameraController : MonoBehaviour
 {
@@ -174,12 +175,12 @@ public class CameraController : MonoBehaviour
         }
         else
         {
-            // 플레이어 2: z축 대칭, 회전도 z축 기준 반전
-            Vector3 offset = basePos - mapCenter;
-            offset.z = -offset.z;
-            targetPosition = mapCenter + offset;
-
-            // 회전도 z축 기준 반전 (y축만 180도 회전)
+            // 플레이어 2: 맵 하단을 기준으로 위치 조정
+            float mapBottom = minPosition.y;
+            float cameraHeight = basePos.y;
+            float cameraX = basePos.x;
+            float cameraZ = mapBottom + 100f; // 하단에서 약간 위로 (필요시 조정)
+            targetPosition = new Vector3(cameraX, cameraHeight, cameraZ);
             targetRotation = Quaternion.Euler(baseRot.eulerAngles.x, baseRot.eulerAngles.y + 180f, baseRot.eulerAngles.z);
         }
 

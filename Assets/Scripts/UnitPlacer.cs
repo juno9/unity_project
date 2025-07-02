@@ -30,6 +30,7 @@ public class UnitPlacer : MonoBehaviour
     private List<HexTile> moveRangeTiles = new List<HexTile>(); // 이동 범위 타일들
     private bool isRangedPlacing = false;
     public Button rangedUnitPlacementButton;
+    private Text guideText; // 안내문구 UI
 
     void Start()
     {
@@ -86,7 +87,7 @@ public class UnitPlacer : MonoBehaviour
         Image img = buttonObj.AddComponent<Image>();
         img.color = new Color(0.2f, 0.6f, 1f, 1f);
         RectTransform rt = buttonObj.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(150, 70);
+        rt.sizeDelta = new Vector2(75, 35);
         rt.anchorMin = new Vector2(1, 1);
         rt.anchorMax = new Vector2(1, 1);
         rt.pivot = new Vector2(1, 1);
@@ -119,7 +120,7 @@ public class UnitPlacer : MonoBehaviour
         Image img = buttonObj.AddComponent<Image>();
         img.color = new Color(0.8f, 0.5f, 1f, 1f); // 보라색 계열
         RectTransform rt = buttonObj.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(150, 70);
+        rt.sizeDelta = new Vector2(75, 35);
         rt.anchorMin = new Vector2(1, 1);
         rt.anchorMax = new Vector2(1, 1);
         rt.pivot = new Vector2(1, 1);
@@ -153,11 +154,11 @@ public class UnitPlacer : MonoBehaviour
         Image img = buttonObj.AddComponent<Image>();
         img.color = new Color(1f, 0.3f, 0.3f, 1f); // 빨간색
         RectTransform rt = buttonObj.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(150, 70);
+        rt.sizeDelta = new Vector2(75, 35);
         rt.anchorMin = new Vector2(1, 1);
         rt.anchorMax = new Vector2(1, 1);
         rt.pivot = new Vector2(1, 1);
-        rt.anchoredPosition = new Vector2(-20, -110); // 유닛 배치 버튼 아래
+        rt.anchoredPosition = new Vector2(-20, -240); // 유닛 배치 버튼 아래
 
         // 텍스트 추가
         GameObject textObj = new GameObject("Text");
@@ -189,7 +190,7 @@ public class UnitPlacer : MonoBehaviour
         Image img = buttonObj.AddComponent<Image>();
         img.color = new Color(0.3f, 1f, 0.3f, 1f); // 초록색
         RectTransform rt = buttonObj.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(150, 70);
+        rt.sizeDelta = new Vector2(75, 35);
         rt.anchorMin = new Vector2(1, 1);
         rt.anchorMax = new Vector2(1, 1);
         rt.pivot = new Vector2(1, 1);
@@ -217,7 +218,6 @@ public class UnitPlacer : MonoBehaviour
     private void ShowAttackButton()
     {
         if (attackButton == null) return;
-        
         if (selectedUnit != null && !selectedUnit.hasAttacked)
         {
             attackButton.gameObject.SetActive(true);
@@ -231,13 +231,11 @@ public class UnitPlacer : MonoBehaviour
     private void ShowActionButtons()
     {
         if (selectedUnit == null) return;
-        
-        // 공격 버튼 표시
+        // 공격 버튼만 표시
         if (attackButton != null)
         {
             attackButton.gameObject.SetActive(!selectedUnit.hasAttacked);
         }
-        
         // 이동 버튼 표시
         if (moveButton != null)
         {
@@ -253,7 +251,10 @@ public class UnitPlacer : MonoBehaviour
             Debug.Log("공격할 수 있는 유닛이 없습니다.");
             return;
         }
-
+        // 이동 모드/이전 공격 모드 등 모두 취소
+        CancelMove();
+        CancelAttack();
+        SetNormalCursor();
         isAttacking = true;
         SetAttackCursor(); // 공격 커서로 변경
         ShowAttackRange();
@@ -275,27 +276,15 @@ public class UnitPlacer : MonoBehaviour
     private void ShowAttackRange()
     {
         if (selectedUnit == null || selectedUnit.currentTile == null) return;
-
         HideAttackRange(); // 기존 범위 숨기기
-
-        // 공격 범위 내의 모든 타일 찾기
         foreach (HexTile tile in hexGrid.GetAllTiles())
         {
             if (tile == null) continue;
-            
-            // 타일에 유닛이 있는지 확인
-            if (tile.unitOnTile != null)
+            int distance = selectedUnit.currentTile.GetDistanceTo(tile);
+            if (distance <= selectedUnit.attackRange && distance > 0)
             {
-                Unit targetUnit = tile.unitOnTile;
-                if (targetUnit != null && targetUnit.playerId != selectedUnit.playerId)
-                {
-                    int distance = selectedUnit.GetDistanceToUnit(targetUnit);
-                    if (distance <= selectedUnit.attackRange && distance > 0)
-                    {
-                        tile.SetHighlight(new Color(1f, 0.2f, 0.2f)); // 빨간색
-                        attackRangeTiles.Add(tile);
-                    }
-                }
+                tile.SetHighlight(new Color(1f, 0.2f, 0.2f)); // 빨간색
+                attackRangeTiles.Add(tile);
             }
         }
     }
@@ -315,42 +304,18 @@ public class UnitPlacer : MonoBehaviour
     private void HandleAttackClick(HexTile clickedTile)
     {
         if (selectedUnit == null || !isAttacking || clickedTile == null) return;
-
-        Debug.Log("HandleAttackClick 호출됨");
-
         // 클릭된 타일에 적 유닛이 있는지 확인
         if (clickedTile.unitOnTile != null)
         {
             Unit targetUnit = clickedTile.unitOnTile;
             if (targetUnit != null && targetUnit.playerId != selectedUnit.playerId)
             {
-                Debug.Log($"공격 시작: {selectedUnit.name} -> {targetUnit.name}");
-                
-                // 공격 실행
                 selectedUnit.Attack(targetUnit);
-                
-                Debug.Log("공격 실행 완료, 후처리 시작");
-                
-                // 공격 완료 후 처리
                 CancelAttack();
-                Debug.Log("CancelAttack 완료");
-                
-                SetNormalCursor(); // 커서 복원
-                Debug.Log("SetNormalCursor 완료");
-                
+                SetNormalCursor();
                 selectedUnit = null;
-                TurnManager.Instance.ShowUnitInfo(null); // 상태창 숨기기
-                
-                Debug.Log($"공격 완료: {targetUnit.name}의 체력이 {targetUnit.currentHealth}로 감소");
+                TurnManager.Instance.ShowUnitInfo(null);
             }
-            else
-            {
-                Debug.Log("적 유닛이 아니거나 null입니다.");
-            }
-        }
-        else
-        {
-            Debug.Log("클릭된 타일에 유닛이 없습니다.");
         }
     }
 
@@ -431,6 +396,17 @@ public class UnitPlacer : MonoBehaviour
 
             unit.currentTile = tile;
             tile.unitOnTile = unit;
+
+            // --- 상대방 유닛을 바라보게 ---
+            List<Unit> opponentUnits = TurnManager.Instance.GetOpponentUnits(unit.playerId);
+            if (opponentUnits != null && opponentUnits.Count > 0)
+            {
+                // 가장 가까운 상대 유닛을 찾거나, 첫 번째 유닛을 기준으로
+                Vector3 targetPos = opponentUnits[0].transform.position;
+                newUnit.transform.LookAt(new Vector3(targetPos.x, newUnit.transform.position.y, targetPos.z));
+            }
+            // --- ---
+
             Debug.Log($"[배치] {unit.name}의 currentTile: {unit.currentTile != null}, tile: {tile.coordinates}");
             TurnManager.Instance.RegisterUnit(unit);
             isRangedPlacing = false; // 배치 후 리셋
@@ -486,6 +462,13 @@ public class UnitPlacer : MonoBehaviour
     {
         Debug.Log($"플레이어 {TurnManager.Instance.currentPlayer} 턴 시작");
         isPlacing = true;
+        // 기존 UI 숨기기
+        if (unitPlacementButton != null) unitPlacementButton.gameObject.SetActive(false);
+        if (rangedUnitPlacementButton != null) rangedUnitPlacementButton.gameObject.SetActive(false);
+        if (attackButton != null) attackButton.gameObject.SetActive(false);
+        if (moveButton != null) moveButton.gameObject.SetActive(false);
+        // 안내문구 표시
+        ShowGuideText("유닛을 배치할 타일을 선택해 주세요");
     }
 
     public void CancelPlacement()
@@ -496,6 +479,13 @@ public class UnitPlacer : MonoBehaviour
             lastHighlightedTile.ResetHighlight();
             lastHighlightedTile = null;
         }
+        // 기존 UI 복구
+        if (unitPlacementButton != null) unitPlacementButton.gameObject.SetActive(true);
+        if (rangedUnitPlacementButton != null) rangedUnitPlacementButton.gameObject.SetActive(true);
+        if (attackButton != null) attackButton.gameObject.SetActive(true);
+        if (moveButton != null) moveButton.gameObject.SetActive(true);
+        // 안내문구 숨기기
+        HideGuideText();
     }
 
     private void StartRangedPlacement()
@@ -592,7 +582,10 @@ public class UnitPlacer : MonoBehaviour
             Debug.Log("이동할 수 있는 유닛이 없습니다.");
             return;
         }
-
+        // 공격 모드/이전 이동 모드 등 모두 취소
+        CancelAttack();
+        CancelMove();
+        SetNormalCursor();
         isMoving = true;
         ShowMoveRange();
         Debug.Log("이동 모드 시작 완료");
@@ -687,6 +680,37 @@ public class UnitPlacer : MonoBehaviour
         }
     }
 
+    private void ShowGuideText(string message)
+    {
+        if (guideText == null)
+        {
+            Canvas canvas = FindFirstObjectByType<Canvas>();
+            GameObject guideObj = new GameObject("GuideText");
+            guideObj.transform.SetParent(canvas.transform);
+            guideText = guideObj.AddComponent<Text>();
+            guideText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            guideText.alignment = TextAnchor.MiddleCenter;
+            guideText.color = Color.yellow;
+            guideText.fontSize = 32;
+            RectTransform rt = guideObj.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(800, 100);
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+        }
+        guideText.text = message;
+        guideText.gameObject.SetActive(true);
+    }
+
+    private void HideGuideText()
+    {
+        if (guideText != null)
+        {
+            guideText.gameObject.SetActive(false);
+        }
+    }
+
     void Update()
     {
         if (TurnManager.Instance == null) return;
@@ -705,7 +729,6 @@ public class UnitPlacer : MonoBehaviour
                 if (Input.GetMouseButtonDown(0))
                 {
                     Debug.Log("유닛 클릭됨: " + hitUnit.name);
-                    
                     // 공격 모드일 때
                     if (isAttacking && selectedUnit != null)
                     {
@@ -720,23 +743,23 @@ public class UnitPlacer : MonoBehaviour
                         }
                         return;
                     }
-                    
-                    // 현재 플레이어의 유닛인 경우에만 선택 가능
+                    // 현재 플레이어의 유닛인 경우에만 선택 및 버튼 표시
                     if (hitUnit.playerId == TurnManager.Instance.currentPlayer)
                     {
                         selectedUnit = hitUnit;
-                        ShowActionButtons();
-                        // 유닛 정보 표시
+                        ShowActionButtons(); // 버튼 표시
                         TurnManager.Instance.ShowUnitInfo(hitUnit);
                     }
                     else
                     {
-                        // 다른 플레이어의 유닛을 클릭한 경우 선택 해제
                         selectedUnit = null;
                         CancelAttack();
                         CancelMove();
                         SetNormalCursor();
-                        TurnManager.Instance.ShowUnitInfo(null);
+                        TurnManager.Instance.ShowUnitInfo(hitUnit); // 상태 정보는 항상 표시
+                        // 버튼 숨기기
+                        if (attackButton != null) attackButton.gameObject.SetActive(false);
+                        if (moveButton != null) moveButton.gameObject.SetActive(false);
                     }
                 }
                 return;
@@ -758,17 +781,15 @@ public class UnitPlacer : MonoBehaviour
                     if (Input.GetMouseButtonDown(0))
                     {
                         PlaceUnit(tile);
-                        CancelPlacement();
+                        CancelPlacement(); // 안내문구 숨기고 UI 복구
                     }
                 }
                 else if (isAttacking && selectedUnit != null)
                 {
-                    // 공격 모드에서 타일 클릭 처리
                     if (Input.GetMouseButtonDown(0))
                     {
                         HandleAttackClick(tile);
                     }
-                    
                     // 공격 가능한 적 유닛 위에 마우스 오버 시 하이라이트
                     if (tile.unitOnTile != null)
                     {
@@ -778,7 +799,6 @@ public class UnitPlacer : MonoBehaviour
                             int distance = selectedUnit.GetDistanceToUnit(targetUnit);
                             if (distance <= selectedUnit.attackRange && distance > 0)
                             {
-                                // 마우스 오버 시 더 밝은 빨간색으로 하이라이트
                                 tile.SetHighlight(new Color(1f, 0.5f, 0.5f));
                             }
                         }
@@ -786,7 +806,6 @@ public class UnitPlacer : MonoBehaviour
                 }
                 else if (isMoving && selectedUnit != null)
                 {
-                    // 이동 모드에서 타일 클릭 처리
                     if (Input.GetMouseButtonDown(0))
                     {
                         HandleMoveClick(tile);
@@ -814,7 +833,7 @@ public class UnitPlacer : MonoBehaviour
         if (Input.GetMouseButtonDown(1))
         {
             selectedUnit = null;
-            CancelPlacement();
+            CancelPlacement(); // 안내문구 숨기고 UI 복구
             CancelAttack();
             CancelMove();
             SetNormalCursor(); // 커서 복원

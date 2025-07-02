@@ -73,7 +73,7 @@ public class TurnManager : MonoBehaviour
         rt.anchorMin = new Vector2(1, 0);
         rt.anchorMax = new Vector2(1, 0);
         rt.pivot = new Vector2(1, 0);
-        rt.anchoredPosition = new Vector2(-20, 20);
+        rt.anchoredPosition = new Vector2(-20, 200);
 
         // 버튼 텍스트
         GameObject textObj = new GameObject("Text");
@@ -223,5 +223,11 @@ public class TurnManager : MonoBehaviour
         UpdateButtonColors();
         
         Debug.Log($"플레이어 {previousPlayer}의 턴이 종료되고 플레이어 {currentPlayer}의 턴이 시작되었습니다.");
+    }
+
+    // 상대방 유닛 리스트 반환
+    public List<Unit> GetOpponentUnits(int playerId)
+    {
+        return playerId == 1 ? player2Units : player1Units;
     }
 } 

@@ -3,7 +3,7 @@ using UnityEngine;
 public class Unit : MonoBehaviour
 {
     public int playerId;
-    public int maxHealth = 100;
+    public int maxHealth = 10;
     public int currentHealth;
     public int attackPower = 10;
     public int moveRange = 2;
