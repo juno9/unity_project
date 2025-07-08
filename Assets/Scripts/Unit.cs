@@ -7,6 +7,7 @@ public class Unit : MonoBehaviour
     public int currentHealth;
     public int attackPower = 10;
     public int moveRange = 2;
+    public int sightRange = 4; // 시야 범위 추가
     public int attackRange = 1;
     public bool hasMoved = false;
     public bool hasAttacked = false;

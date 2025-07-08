@@ -73,7 +73,7 @@ public class TurnManager : MonoBehaviour
         rt.anchorMin = new Vector2(1, 0);
         rt.anchorMax = new Vector2(1, 0);
         rt.pivot = new Vector2(1, 0);
-        rt.anchoredPosition = new Vector2(-20, 200);
+        rt.anchoredPosition = new Vector2(0, 300);
 
         // 버튼 텍스트
         GameObject textObj = new GameObject("Text");

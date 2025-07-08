@@ -49,6 +49,15 @@ public class GameInitializer : MonoBehaviour
         
         // TurnManager 초기화
         InitializeTurnManager();
+
+        // 한 프레임 대기 후 FogOfWar 갱신
+        yield return null;
+        FogOfWar fogOfWar = FindFirstObjectByType<FogOfWar>();
+        if (fogOfWar != null)
+        {
+            fogOfWar.OnPlayerTurnChanged(1); // 플레이어 1의 턴으로 초기 시야 밝힘
+            Debug.Log("GameInitializer가 FogOfWar의 첫 업데이트를 요청했습니다.");
+        }
     }
     
     private void CollectAvailableTiles()
@@ -107,6 +116,7 @@ public class GameInitializer : MonoBehaviour
         unit.playerId = playerId;
         tile.PlaceUnit(unitObject); // 위치만 맞추고 회전은 그대로 유지
         unit.attackRange = isRanged ? 10 : 1;
+        unit.sightRange = isRanged ? 2 : 1; // 원거리: 2, 근거리: 1
         
         // 유닛 색상 변경 (Renderer가 있는 경우)
         Renderer renderer = unitObject.GetComponentInChildren<Renderer>();

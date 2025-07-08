@@ -36,6 +36,7 @@ public class HexTile : MonoBehaviour
         if (meshRenderer != null && meshRenderer.material != null)
         {
             meshRenderer.material.color = color;
+            Debug.Log($"[HexTile] {coordinates} 색상 변경: {color}");
         }
     }
 
@@ -67,17 +68,21 @@ public class HexTile : MonoBehaviour
     public int GetDistanceTo(HexTile other)
     {
         if (other == null) return int.MaxValue;
-        
-        Vector2Int delta = coordinates - other.coordinates;
-        
-        // 육각형 그리드에서의 거리 계산
-        int distance = Mathf.Max(
-            Mathf.Abs(delta.x),
-            Mathf.Abs(delta.y),
-            Mathf.Abs(delta.x + delta.y)
-        );
-        
-        return distance;
+
+        // 현재 타일(self)의 큐브 좌표 변환
+        int self_q = coordinates.x - (coordinates.y + (coordinates.y & 1)) / 2;
+        int self_r = coordinates.y;
+        int self_s = -self_q - self_r;
+
+        // 다른 타일(other)의 큐브 좌표 변환
+        int other_q = other.coordinates.x - (other.coordinates.y + (other.coordinates.y & 1)) / 2;
+        int other_r = other.coordinates.y;
+        int other_s = -other_q - other_r;
+
+        // 큐브 좌표계에서의 거리 계산
+        return (Mathf.Abs(self_q - other_q) 
+              + Mathf.Abs(self_r - other_r) 
+              + Mathf.Abs(self_s - other_s)) / 2;
     }
 
     public void PlaceUnit(GameObject unitObject)

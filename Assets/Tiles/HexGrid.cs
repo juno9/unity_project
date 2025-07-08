@@ -160,7 +160,7 @@ public class HexGrid : MonoBehaviour
         mf.mesh = mesh;
 
         mr.material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        mr.material.color = Color.gray;
+        mr.material.color = Color.black;
 
         var border = tile.AddComponent<TileBorder>();
         border.radius = radius;
@@ -279,5 +279,23 @@ public class HexGrid : MonoBehaviour
             }
         }
         return allTiles;
+    }
+
+    // 전장의 안개를 위해 그리드의 월드 좌표 경계를 반환하는 메서드
+    public Bounds GetGridWorldBounds()
+    {
+        if (tilesList.Count == 0) return new Bounds(Vector3.zero, Vector3.zero);
+
+        Bounds bounds = new Bounds(tilesList[0].transform.position, Vector3.zero);
+        foreach (HexTile tile in tilesList)
+        {
+            bounds.Encapsulate(tile.transform.position);
+        }
+        // 타일 크기를 고려하여 경계를 약간 확장합니다.
+        float r = 0.5f;
+        float width = r * 2f;
+        float height = Mathf.Sqrt(3f) * r;
+        bounds.Expand(new Vector3(width, 0, height) * 0.5f);
+        return bounds;
     }
 } 

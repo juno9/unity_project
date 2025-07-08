@@ -4,6 +4,7 @@ public class AxisVisualizer : MonoBehaviour
 {
     public float axisLength = 5f;
     
+    #if UNITY_EDITOR
     void OnDrawGizmos()
     {
         // X축 (빨간색)
@@ -24,4 +25,5 @@ public class AxisVisualizer : MonoBehaviour
         UnityEditor.Handles.Label(transform.position + Vector3.up * axisLength, "Y");
         UnityEditor.Handles.Label(transform.position + Vector3.forward * axisLength, "Z");
     }
+#endif
 } 

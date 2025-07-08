@@ -410,6 +410,13 @@ public class UnitPlacer : MonoBehaviour
             Debug.Log($"[배치] {unit.name}의 currentTile: {unit.currentTile != null}, tile: {tile.coordinates}");
             TurnManager.Instance.RegisterUnit(unit);
             isRangedPlacing = false; // 배치 후 리셋
+
+            // 유닛 배치 후 안개 갱신
+            FogOfWar fogOfWar = FindFirstObjectByType<FogOfWar>();
+            if (fogOfWar != null)
+            {
+                fogOfWar.OnPlayerTurnChanged(TurnManager.Instance != null ? TurnManager.Instance.currentPlayer : 1);
+            }
         }
     }
 
@@ -769,7 +776,7 @@ public class UnitPlacer : MonoBehaviour
             HexTile tile = hit.collider.GetComponent<HexTile>();
             if (tile != null)
             {
-                Debug.Log($"클릭된 타일: {tile.name}, coordinates: {tile.coordinates}");
+               
                 if (isPlacing)
                 {
                     if (lastHighlightedTile != null && lastHighlightedTile != tile)

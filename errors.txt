@@ -1,0 +1,4 @@
+Assets\Scripts\AxisVisualizer.cs(22,9): error CS0234: The type or namespace name 'Handles' does not exist in the namespace 'UnityEditor' (are you missing an assembly reference?)
+Assets\Scripts\AxisVisualizer.cs(23,9): error CS0234: The type or namespace name 'Handles' does not exist in the namespace 'UnityEditor' (are you missing an assembly reference?)
+Assets\Scripts\AxisVisualizer.cs(24,9): error CS0234: The type or namespace name 'Handles' does not exist in the namespace 'UnityEditor' (are you missing an assembly reference?)
+Assets\Scripts\AxisVisualizer.cs(25,9): error CS0234: The type or namespace name 'Handles' does not exist in the namespace 'UnityEditor' (are you missing an assembly reference?)
