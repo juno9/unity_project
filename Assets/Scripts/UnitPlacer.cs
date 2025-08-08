@@ -412,6 +412,20 @@ public class UnitPlacer : MonoBehaviour
             }
             // --- ---
 
+            // 유닛과 거점 연결선 그리기
+            Base playerBase = FindPlayerBase(unit.playerId);
+            if (playerBase != null)
+            {
+                LineDrawer lineDrawer = newUnit.GetComponent<LineDrawer>();
+                if (lineDrawer == null)
+                {
+                    lineDrawer = newUnit.AddComponent<LineDrawer>();
+                }
+                Color lineColor = unit.playerId == 1 ? player1Color : player2Color;
+                lineDrawer.DrawLine(newUnit.transform.position, playerBase.transform.position, lineColor);
+            }
+
+
             Debug.Log($"[배치] {unit.name}의 currentTile: {unit.currentTile != null}, tile: {tile.coordinates}");
             TurnManager.Instance.RegisterUnit(unit);
             isRangedPlacing = false; // 배치 후 리셋
@@ -421,6 +435,19 @@ public class UnitPlacer : MonoBehaviour
 
             
         }
+    }
+
+    private Base FindPlayerBase(int playerId)
+    {
+        Base[] bases = FindObjectsByType<Base>(FindObjectsSortMode.None);
+        foreach (Base b in bases)
+        {
+            if (b.playerId == playerId)
+            {
+                return b;
+            }
+        }
+        return null;
     }
 
     private void MoveUnit(HexTile targetTile)
@@ -464,6 +491,19 @@ public class UnitPlacer : MonoBehaviour
         unit.currentTile = targetTile;
         targetTile.unitOnTile = unit;
         unit.hasMoved = true;
+
+        // 유닛 이동 후 선 다시 그리기
+        Base playerBase = FindPlayerBase(unit.playerId);
+        if (playerBase != null)
+        {
+            LineDrawer lineDrawer = unit.GetComponent<LineDrawer>();
+            if (lineDrawer != null)
+            {
+                Color lineColor = unit.playerId == 1 ? player1Color : player2Color;
+                lineDrawer.DrawLine(unit.transform.position, playerBase.transform.position, lineColor);
+            }
+        }
+
         selectedUnit = null;
         Debug.Log($"[이동] {unit.name}의 currentTile: {unit.currentTile != null}, tile: {targetTile.coordinates}");
 

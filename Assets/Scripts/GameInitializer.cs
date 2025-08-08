@@ -86,6 +86,12 @@ public class GameInitializer : MonoBehaviour
             playerBase.currentTile = spawnTile;
             spawnTile.baseOnTile = playerBase;
 
+            // 기지에 LineRenderer 추가
+            if (baseObject.GetComponent<LineRenderer>() == null)
+            {
+                baseObject.AddComponent<LineRenderer>();
+            }
+
             // 기지 타일 색상 변경 (녹색)
             Debug.Log($"[GameInitializer] 플레이어 {playerId} 기지 타일 색상 변경 시도: {spawnTile.coordinates} -> Green");
             spawnTile.SetColor(Color.green);

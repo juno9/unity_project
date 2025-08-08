@@ -65,6 +65,7 @@ public class Unit : MonoBehaviour
         }
 
         int distance = GetDistanceToUnit(target);
+        Debug.Log($"공격 시도: {name} -> {target.name}, 거리: {distance}, 공격범위: {attackRange}");
         if (distance > attackRange)
         {
             Debug.Log($"공격 범위를 벗어났습니다. 거리: {distance}, 공격 범위: {attackRange}");
