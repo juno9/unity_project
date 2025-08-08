@@ -9,6 +9,11 @@ public class TileBorder : MonoBehaviour
 
     void Start()
     {
+        InitializeLineRenderer();
+    }
+
+    private void InitializeLineRenderer()
+    {
         lineRenderer = gameObject.AddComponent<LineRenderer>();
         lineRenderer.loop = true;
         lineRenderer.useWorldSpace = false;
@@ -28,5 +33,16 @@ public class TileBorder : MonoBehaviour
 
         lineRenderer.positionCount = positions.Length;
         lineRenderer.SetPositions(positions);
+    }
+
+    public void SetBorderColor(Color color)
+    {
+        if (lineRenderer == null)
+        {
+            InitializeLineRenderer();
+        }
+        lineColor = color;
+        lineRenderer.startColor = lineColor;
+        lineRenderer.endColor = lineColor;
     }
 } 

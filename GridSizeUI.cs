@@ -28,8 +28,8 @@ public class GridSizeUI : MonoBehaviour
     {
         if (hexGrid == null) return;
 
-        int width = 10;
-        int height = 10;
+        int width = hexGrid.width;
+        int height = hexGrid.height;
 
         if (int.TryParse(widthInput.text, out int w))
         {

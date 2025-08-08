@@ -3,10 +3,11 @@ using UnityEngine;
 public class Unit : MonoBehaviour
 {
     public int playerId;
-    public int maxHealth = 100;
+    public int maxHealth = 10;
     public int currentHealth;
     public int attackPower = 10;
     public int moveRange = 2;
+    public int sightRange = 4; // 시야 범위 추가
     public int attackRange = 1;
     public bool hasMoved = false;
     public bool hasAttacked = false;
@@ -64,7 +65,8 @@ public class Unit : MonoBehaviour
         }
 
         int distance = GetDistanceToUnit(target);
-        if (distance > attackRange)
+        Debug.Log($"공격 시도: {name} -> {target.name}, 거리: {distance}, 공격범위: {attackRange}");
+        if (distance > attackRange + 0.1f) // 오차 허용
         {
             Debug.Log($"공격 범위를 벗어났습니다. 거리: {distance}, 공격 범위: {attackRange}");
             return;
@@ -107,13 +109,13 @@ public class Unit : MonoBehaviour
 
     public void PlaceUnit(HexTile tile)
     {
-        currentTile = tile;
+        currentTile = FindFirstObjectByType<HexGrid>().GetTileAt(tile.coordinates);
         Debug.Log($"[배치] unit.currentTile set: {currentTile != null}, tile: {tile.coordinates}");
     }
 
     public void MoveUnit(HexTile targetTile)
     {
-        currentTile = targetTile;
+        currentTile = FindFirstObjectByType<HexGrid>().GetTileAt(targetTile.coordinates);
         Debug.Log($"[이동] unit.currentTile set: {currentTile != null}, tile: {targetTile.coordinates}");
     }
 } 

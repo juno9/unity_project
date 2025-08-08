@@ -6,11 +6,15 @@ public class HexGrid : MonoBehaviour
     public GameObject hexTilePrefab;
     [SerializeField] private int mapWidth = 20;    // 기본 맵 가로 크기
     [SerializeField] private int mapHeight = 15;   // 기본 맵 세로 크기
+
+    public int width => mapWidth;
     
     private float hexSize = 1.0f; // 육각형의 반지름 (중심에서 꼭지점까지의 거리)
     private float hexWidth;       // 육각형의 가로 길이
     private float hexHeight;      // 육각형의 세로 길이
     private HexTile[,] tiles;
+
+    public int height => mapHeight;
 
     void Start()
     {
@@ -19,6 +23,15 @@ public class HexGrid : MonoBehaviour
         hexHeight = hexSize * Mathf.Sqrt(3f);     // 세로 길이 = 반지름 * √3
         
         GenerateGrid();
+        SetAllTileNeighbors();
+    }
+
+    public void ResizeGrid(int width, int height)
+    {
+        mapWidth = width;
+        mapHeight = height;
+        GenerateGrid();
+        SetAllTileNeighbors();
     }
 
     public void GenerateGrid()
@@ -72,6 +85,22 @@ public class HexGrid : MonoBehaviour
         }
     }
 
+    public void SetAllTileNeighbors()
+    {
+        for (int y = 0; y < mapHeight; y++)
+        {
+            for (int x = 0; x < mapWidth; x++)
+            {
+                tiles[x, y].FindNeighbors(this);
+            }
+        }
+    }
+
+    public HexTile GetTileAt(Vector3Int coordinates)
+    {
+        return GetTileAt(new Vector2Int(coordinates.x, coordinates.y));
+    }
+
     public HexTile GetTileAt(Vector2Int coordinates)
     {
         if (coordinates.x >= 0 && coordinates.x < mapWidth && 
@@ -96,5 +125,12 @@ public class HexGrid : MonoBehaviour
             }
         }
         return allTiles;
+    }
+
+    public Vector3 GetMapCenter()
+    {
+        float totalWidth = (mapWidth - 1) * hexWidth * 0.75f;
+        float totalHeight = (mapHeight - 1) * hexHeight;
+        return new Vector3(totalWidth / 2f, 0, totalHeight / 2f);
     }
 } 

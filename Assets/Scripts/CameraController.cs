@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class CameraController : MonoBehaviour
 {
@@ -74,54 +75,22 @@ public class CameraController : MonoBehaviour
         Vector3 pos = transform.position;
         Vector3 mousePos = Input.mousePosition;
 
-        // 현재 플레이어에 따라 이동 방향 결정
-        int moveDirection = 1;
-        bool isPlayer2 = false;
-        if (TurnManager.Instance != null && TurnManager.Instance.currentPlayer == 2)
-        {
-            moveDirection = -1; // 플레이어 2일 때는 반대 방향
-            isPlayer2 = true;
-        }
-
         // 왼쪽
         if (mousePos.x <= edgeSize)
-            pos.x -= moveSpeed * Time.deltaTime * moveDirection;
+            pos.x -= moveSpeed * Time.deltaTime;
         // 오른쪽
         if (mousePos.x >= Screen.width - edgeSize)
-            pos.x += moveSpeed * Time.deltaTime * moveDirection;
+            pos.x += moveSpeed * Time.deltaTime;
         // 아래
         if (mousePos.y <= edgeSize)
-            pos.z -= moveSpeed * Time.deltaTime * moveDirection;
+            pos.z -= moveSpeed * Time.deltaTime;
         // 위
         if (mousePos.y >= Screen.height - edgeSize)
-            pos.z += moveSpeed * Time.deltaTime * moveDirection;
+            pos.z += moveSpeed * Time.deltaTime;
 
-        // 맵 범위 제한 (z축: 화면 하단이 맵의 끝에 닿을 때까지)
-        Camera cam = GetComponent<Camera>();
-        if (cam != null)
-        {
-            float margin = 4.0f; // 아래로 보일 여유 공간(유닛)
-            Vector3 bottomCenter = cam.ViewportToWorldPoint(new Vector3(0.5f, 0, cam.nearClipPlane + 1f));
-            float bottomOffset = pos.z - bottomCenter.z;
-            if (!isPlayer2)
-            {
-                // 플레이어 1: 기존 방식
-                pos.z = Mathf.Clamp(pos.z, minPosition.y, maxPosition.y);
-            }
-            else
-            {
-                // 플레이어 2: Clamp 기준 반대로 적용
-                float minZ = minPosition.y;
-                float maxZ = maxPosition.y;
-                // 아래쪽 끝까지 이동 가능하도록 Clamp를 반대로 적용
-                pos.z = Mathf.Clamp(pos.z, minZ, maxZ);
-            }
-        }
-        else
-        {
-            pos.z = Mathf.Clamp(pos.z, minPosition.y, maxPosition.y);
-        }
+        // 맵 범위 제한
         pos.x = Mathf.Clamp(pos.x, minPosition.x, maxPosition.x);
+        pos.z = Mathf.Clamp(pos.z, minPosition.y, maxPosition.y);
 
         transform.position = pos;
     }
@@ -157,7 +126,7 @@ public class CameraController : MonoBehaviour
     {
         currentPlayerView = targetPlayerId;
 
-        // 최초 카메라 위치/회전/orthographicSize 기준으로 대칭 변환
+        // 플레이어에 상관없이 항상 같은 시야로 설정
         Vector3 basePos = initialPosition;
         Quaternion baseRot = initialRotation;
         float orthoSize = initialOrthoSize;
@@ -165,23 +134,6 @@ public class CameraController : MonoBehaviour
 
         Vector3 targetPosition = basePos;
         Quaternion targetRotation = baseRot;
-
-        if (targetPlayerId == 1)
-        {
-            // 플레이어 1: 최초 시점 그대로
-            targetPosition = basePos;
-            targetRotation = baseRot;
-        }
-        else
-        {
-            // 플레이어 2: z축 대칭, 회전도 z축 기준 반전
-            Vector3 offset = basePos - mapCenter;
-            offset.z = -offset.z;
-            targetPosition = mapCenter + offset;
-
-            // 회전도 z축 기준 반전 (y축만 180도 회전)
-            targetRotation = Quaternion.Euler(baseRot.eulerAngles.x, baseRot.eulerAngles.y + 180f, baseRot.eulerAngles.z);
-        }
 
         // 즉시 위치, 회전, Orthographic 모드/사이즈 변경
         transform.position = targetPosition;
@@ -192,7 +144,7 @@ public class CameraController : MonoBehaviour
             cam.orthographicSize = orthoSize;
         }
 
-        Debug.Log($"카메라가 플레이어 {targetPlayerId} 시점으로 직교로 즉시 전환되었습니다.");
+        Debug.Log($"카메라가 플레이어 {targetPlayerId} 시점으로(공통 시야) 즉시 전환되었습니다.");
     }
     
     // 카메라를 원래 위치로 리셋
@@ -208,5 +160,39 @@ public class CameraController : MonoBehaviour
             cam.orthographicSize = initialOrthoSize;
         }
         Debug.Log("카메라가 원래 위치로 직교로 즉시 리셋되었습니다.");
+    }
+
+    public void FrameWholeMap()
+    {
+        HexGrid grid = FindFirstObjectByType<HexGrid>();
+        if (grid == null) return;
+
+        Camera cam = GetComponent<Camera>();
+        if (cam == null) return;
+
+        // 맵의 중앙으로 카메라 이동
+        Vector3 mapCenter = grid.GetMapCenter();
+        transform.position = new Vector3(mapCenter.x, transform.position.y, mapCenter.z);
+
+        // 맵 전체를 담을 수 있는 orthographic size 계산
+        float screenAspect = (float)Screen.width / Screen.height;
+        float mapAspect = (float)grid.width / grid.height;
+
+        float requiredSize;
+        if (screenAspect >= mapAspect)
+        {
+            requiredSize = grid.height / 2f;
+        }
+        else
+        {
+            float newWidth = grid.height * screenAspect;
+            requiredSize = (grid.height / 2f) * (grid.width / newWidth);
+        }
+
+        cam.orthographicSize = requiredSize * 1.2f; // 약간의 여백을 줌
+
+        // 카메라 이동 범위도 맵 크기에 맞게 재설정
+        minPosition = new Vector2(0, 0);
+        maxPosition = new Vector2(grid.width, grid.height);
     }
 }
