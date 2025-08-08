@@ -134,8 +134,6 @@ public class CameraController : MonoBehaviour
 
         Vector3 targetPosition = basePos;
         Quaternion targetRotation = baseRot;
-        minPosition = new Vector2(0, -200);
-        maxPosition = new Vector2(20, 25);
 
         // 즉시 위치, 회전, Orthographic 모드/사이즈 변경
         transform.position = targetPosition;
@@ -162,5 +160,39 @@ public class CameraController : MonoBehaviour
             cam.orthographicSize = initialOrthoSize;
         }
         Debug.Log("카메라가 원래 위치로 직교로 즉시 리셋되었습니다.");
+    }
+
+    public void FrameWholeMap()
+    {
+        HexGrid grid = FindFirstObjectByType<HexGrid>();
+        if (grid == null) return;
+
+        Camera cam = GetComponent<Camera>();
+        if (cam == null) return;
+
+        // 맵의 중앙으로 카메라 이동
+        Vector3 mapCenter = grid.GetMapCenter();
+        transform.position = new Vector3(mapCenter.x, transform.position.y, mapCenter.z);
+
+        // 맵 전체를 담을 수 있는 orthographic size 계산
+        float screenAspect = (float)Screen.width / Screen.height;
+        float mapAspect = (float)grid.width / grid.height;
+
+        float requiredSize;
+        if (screenAspect >= mapAspect)
+        {
+            requiredSize = grid.height / 2f;
+        }
+        else
+        {
+            float newWidth = grid.height * screenAspect;
+            requiredSize = (grid.height / 2f) * (grid.width / newWidth);
+        }
+
+        cam.orthographicSize = requiredSize * 1.2f; // 약간의 여백을 줌
+
+        // 카메라 이동 범위도 맵 크기에 맞게 재설정
+        minPosition = new Vector2(0, 0);
+        maxPosition = new Vector2(grid.width, grid.height);
     }
 }

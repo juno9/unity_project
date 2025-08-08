@@ -6,6 +6,9 @@ public class HexGrid : MonoBehaviour
     public GameObject hexTilePrefab;
     [SerializeField] public int mapWidth = 20;    // 기본 맵 가로 크기
     [SerializeField] public int mapHeight = 15;   // 기본 맵 세로 크기
+
+    public int width => mapWidth;
+    public int height => mapHeight;
     
     private float hexSize = 1.0f; // 육각형의 반지름 (중심에서 꼭지점까지의 거리)
     private float hexWidth;       // 육각형의 가로 길이

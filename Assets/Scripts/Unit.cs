@@ -108,13 +108,13 @@ public class Unit : MonoBehaviour
 
     public void PlaceUnit(HexTile tile)
     {
-        currentTile = tile;
+        currentTile = FindFirstObjectByType<HexGrid>().GetTileAt(tile.coordinates);
         Debug.Log($"[배치] unit.currentTile set: {currentTile != null}, tile: {tile.coordinates}");
     }
 
     public void MoveUnit(HexTile targetTile)
     {
-        currentTile = targetTile;
+        currentTile = FindFirstObjectByType<HexGrid>().GetTileAt(targetTile.coordinates);
         Debug.Log($"[이동] unit.currentTile set: {currentTile != null}, tile: {targetTile.coordinates}");
     }
 } 

@@ -121,6 +121,32 @@ public class TurnManager : MonoBehaviour
         endTurnButton.onClick.AddListener(EndTurn);
     }
 
+    public void StartFirstTurn()
+    {
+        currentPlayer = 1;
+        
+        if (cameraController != null)
+        {
+            cameraController.TransitionToPlayerView(currentPlayer);
+        }
+        
+        if (fogOfWar != null)
+        {
+            fogOfWar.OnPlayerTurnChanged(currentPlayer);
+        }
+        
+        UpdateButtonColors();
+        Debug.Log("첫 턴(플레이어 1)이 시작되었습니다.");
+    }
+
+    public void UpdateFogOfWar()
+    {
+        if (fogOfWar != null)
+        {
+            fogOfWar.OnPlayerTurnChanged(currentPlayer);
+        }
+    }
+
     public void UpdateButtonColors()
     {
         Color currentColor = currentPlayer == 1 ? player1Color : player2Color;

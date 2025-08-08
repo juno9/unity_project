@@ -8,8 +8,10 @@ public class GameInitializer : MonoBehaviour
     [SerializeField] private bool player1Ranged = false; // 플레이어 1 유닛 타입 (false: 근거리, true: 원거리)
     [SerializeField] private bool player2Ranged = false; // 플레이어 2 유닛 타입 (false: 근거리, true: 원거리)
     
+    [Header("기지 설정")]
+    [SerializeField] private GameObject basePrefab; // 기지 프리팹 (없으면 빈 오브젝트로 생성)
+
     private HexGrid hexGrid;
-    private List<HexTile> availableTiles = new List<HexTile>();
     private List<Unit> spawnedUnits = new List<Unit>();
     
     void Start()
@@ -37,66 +39,73 @@ public class GameInitializer : MonoBehaviour
     {
         Debug.Log("게임 초기화 시작...");
         
-        // 사용 가능한 타일들 수집
-        CollectAvailableTiles();
-        
-        // 플레이어 1 유닛 1기 배치
-        yield return StartCoroutine(SpawnPlayerUnit(1, player1Ranged));
-        // 플레이어 2 유닛 1기 배치
-        yield return StartCoroutine(SpawnPlayerUnit(2, player2Ranged));
-        
-        Debug.Log($"게임 초기화 완료! 플레이어 1, 2 각각 1기씩 유닛 생성됨");
-        
-        // TurnManager 초기화
-        InitializeTurnManager();
+        // 플레이어 1 거점 및 유닛 배치
+        yield return StartCoroutine(SpawnBaseAndUnit(1, player1Ranged));
+        // 플레이어 2 거점 및 유닛 배치
+        yield return StartCoroutine(SpawnBaseAndUnit(2, player2Ranged));
 
-        // 한 프레임 대기 후 FogOfWar 갱신
-        yield return null;
+        Debug.Log($"게임 초기화 완료! 플레이어 1, 2 거점 및 유닛 생성됨");
+        
+        // TurnManager를 통해 첫 턴 시작
+        if (TurnManager.Instance != null)
+        {
+            TurnManager.Instance.StartFirstTurn();
+        }
+        
+        // FogOfWar 업데이트
         FogOfWar fogOfWar = FindFirstObjectByType<FogOfWar>();
         if (fogOfWar != null)
         {
-            fogOfWar.OnPlayerTurnChanged(1); // 플레이어 1의 턴으로 초기 시야 밝힘
-            Debug.Log("GameInitializer가 FogOfWar의 첫 업데이트를 요청했습니다.");
+            fogOfWar.OnPlayerTurnChanged(1); // 첫 턴은 플레이어 1
         }
     }
     
-    private void CollectAvailableTiles()
-    {
-        availableTiles.Clear();
-        List<HexTile> allTiles = hexGrid.GetAllTiles();
-        foreach (HexTile tile in allTiles)
-        {
-            if (tile != null && !tile.IsOccupied())
-            {
-                availableTiles.Add(tile);
-            }
-        }
-        Debug.Log($"사용 가능한 타일 수: {availableTiles.Count}");
-    }
-    
-    private System.Collections.IEnumerator SpawnPlayerUnit(int playerId, bool isRanged)
+    private System.Collections.IEnumerator SpawnBaseAndUnit(int playerId, bool isRanged)
     {
         Color playerColor = playerId == 1 ? Color.blue : new Color(1f, 0.5f, 0f); // 주황색
-        HexTile spawnTile = GetRandomSpawnTile();
+        Vector2Int spawnCoordinates = playerId == 1 ? new Vector2Int(10, 10) : new Vector2Int(20, 20);
+        HexTile spawnTile = hexGrid.GetTileAt(spawnCoordinates);
+
         if (spawnTile != null)
         {
+            // 기지 생성 및 배치
+            GameObject baseObject;
+            if (basePrefab != null)
+            {
+                baseObject = Instantiate(basePrefab, spawnTile.transform.position + Vector3.up * 0.1f, Quaternion.identity);
+                baseObject.name = $"Player{playerId}_Base";
+            }
+            else
+            {
+                baseObject = new GameObject($"Player{playerId}_Base");
+                baseObject.transform.position = spawnTile.transform.position + Vector3.up * 0.1f;
+            }
+            
+            Base playerBase = baseObject.AddComponent<Base>();
+            playerBase.playerId = playerId;
+            playerBase.currentTile = spawnTile;
+            spawnTile.baseOnTile = playerBase;
+
+            // 기지 타일 색상 변경 (녹색)
+            Debug.Log($"[GameInitializer] 플레이어 {playerId} 기지 타일 색상 변경 시도: {spawnTile.coordinates} -> Green");
+            spawnTile.SetColor(Color.green);
+            Debug.Log($"[GameInitializer] 플레이어 {playerId} 기지 생성됨: {baseObject.name} at {spawnTile.coordinates}. 현재 타일 색상: {spawnTile.GetComponent<MeshRenderer>().material.color}");
+
+            // 기지 타일 테두리 색상 변경
+            TileBorder tileBorder = spawnTile.GetComponent<TileBorder>();
+            if (tileBorder != null)
+            {
+                tileBorder.SetBorderColor(playerColor);
+                Debug.Log($"[GameInitializer] 플레이어 {playerId} 기지 타일 테두리 색상 변경 완료: {playerColor}");
+            }
+
             SpawnUnit(spawnTile, playerId, playerColor, isRanged);
             yield return null;
         }
         else
         {
-            Debug.LogWarning($"플레이어 {playerId}의 유닛을 위한 스폰 위치를 찾을 수 없습니다.");
+            Debug.LogWarning($"플레이어 {playerId}의 유닛을 위한 스폰 위치를 찾을 수 없습니다. 좌표: {spawnCoordinates}");
         }
-    }
-    
-    private HexTile GetRandomSpawnTile()
-    {
-        if (availableTiles.Count == 0)
-            return null;
-        int randomIndex = Random.Range(0, availableTiles.Count);
-        HexTile selectedTile = availableTiles[randomIndex];
-        availableTiles.RemoveAt(randomIndex);
-        return selectedTile;
     }
     
     private void SpawnUnit(HexTile tile, int playerId, Color playerColor, bool isRanged)
@@ -141,20 +150,5 @@ public class GameInitializer : MonoBehaviour
         Debug.Log($"플레이어 {playerId} {(isRanged ? "원거리" : "근거리")} 유닛 생성됨: {unitObject.name} at {tile.coordinates}");
     }
     
-    private void InitializeTurnManager()
-    {
-        if (TurnManager.Instance != null)
-        {
-            // TurnManager의 UI 업데이트
-            TurnManager.Instance.UpdateButtonColors();
-        }
-        
-        // 유닛 배치 버튼 비활성화 (게임이 시작되었으므로)
-        UnitPlacer unitPlacer = FindFirstObjectByType<UnitPlacer>();
-        if (unitPlacer != null && unitPlacer.unitPlacementButton != null)
-        {
-            unitPlacer.unitPlacementButton.gameObject.SetActive(false);
-            Debug.Log("유닛 배치 버튼이 비활성화되었습니다. 게임이 시작되었습니다.");
-        }
-    }
+    
 } 

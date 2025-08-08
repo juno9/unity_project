@@ -6,8 +6,11 @@ public class HexTile : MonoBehaviour
     public Vector2Int coordinates; // Grid coordinates
     public Vector3 position;      // World position
     public Unit unitOnTile;       // 이 타일에 있는 유닛
+    public Base baseOnTile;       // 이 타일에 있는 기지
     public List<HexTile> neighbors = new List<HexTile>(); // 경로 탐색용 이웃 타일
     
+    public bool isBase = false; // 거점 여부
+
     private MeshRenderer meshRenderer;
     private Color originalColor;
     private bool isOccupied = false; // 타일 점유 상태
@@ -16,7 +19,10 @@ public class HexTile : MonoBehaviour
     {
         meshRenderer = GetComponent<MeshRenderer>();
         if (meshRenderer != null)
+        {
+            meshRenderer.material = new Material(meshRenderer.material); // 새로운 Material 인스턴스 생성
             originalColor = meshRenderer.material.color;
+        }
 
         MeshFilter mf = GetComponent<MeshFilter>();
         MeshCollider mc = GetComponent<MeshCollider>();
@@ -26,6 +32,12 @@ public class HexTile : MonoBehaviour
             mc.sharedMesh = mf.sharedMesh;
     }
 
+    public void SetBase()
+    {
+        isBase = true;
+        SetColor(Color.green);
+    }
+
     public void Initialize(Vector2Int coords)
     {
         coordinates = coords;
@@ -33,10 +45,11 @@ public class HexTile : MonoBehaviour
 
     public void SetColor(Color color)
     {
+        Debug.Log($"[HexTile] {coordinates} 색상 변경 시도: {color}");
         if (meshRenderer != null && meshRenderer.material != null)
         {
             meshRenderer.material.color = color;
-            Debug.Log($"[HexTile] {coordinates} 색상 변경: {color}");
+            Debug.Log($"[HexTile] {coordinates} 색상 변경 완료: {color}");
         }
     }
 

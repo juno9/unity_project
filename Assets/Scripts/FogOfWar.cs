@@ -26,15 +26,6 @@ public class FogOfWar : MonoBehaviour
         }
     }
 
-    void Update()
-    {
-        if (Time.time >= nextUpdateTime)
-        {
-            UpdateFog();
-            nextUpdateTime = Time.time + fogUpdateInterval;
-        }
-    }
-
     public void OnPlayerTurnChanged(int newPlayer)
     {
         currentPlayer = newPlayer;
@@ -57,36 +48,52 @@ public class FogOfWar : MonoBehaviour
             return;
         }
 
-        // 1. 먼저 모든 타일을 검은색으로 설정
+        // 1. 먼저 모든 타일을 검은색으로 설정 (거점 제외)
         foreach (var tile in allTiles)
         {
-            tile.SetColor(Color.black);
+            if (!tile.isBase)
+            {
+                tile.SetColor(Color.black);
+            }
         }
 
-        // 2. 현재 플레이어의 유닛들 주변 시야만 흰색으로 밝힘
+        // 2. 현재 플레이어의 유닛들 주변 시야만 흰색으로 밝힘 (거점 제외)
         HashSet<HexTile> visibleTiles = GetVisibleTiles();
         foreach (var tile in visibleTiles)
         {
-            tile.SetColor(Color.white);
+            if (!tile.isBase)
+            {
+                tile.SetColor(Color.white);
+            }
         }
     }
 
-    // 현재 플레이어의 모든 유닛 시야에 들어오는 타일들을 반환
     private HashSet<HexTile> GetVisibleTiles()
     {
         HashSet<HexTile> visibleTiles = new HashSet<HexTile>();
         Unit[] allUnits = FindObjectsOfType<Unit>();
+        Base[] allBases = FindObjectsOfType<Base>();
 
+        // 유닛 시야 추가
         foreach (Unit unit in allUnits)
         {
-            Debug.Log($"[FogOfWar] 유닛: {unit.name}, currentTile: {unit.currentTile}, sightRange: {unit.sightRange}, playerId: {unit.playerId}, 활성: {unit.gameObject.activeInHierarchy}");
             if (unit.playerId == currentPlayer && unit.currentTile != null)
             {
-                // 각 유닛의 시야 범위 내 타일들을 추가 (BFS 사용)
                 HashSet<HexTile> tilesInSight = GetTilesInSight(unit.currentTile, unit.sightRange);
                 visibleTiles.UnionWith(tilesInSight);
             }
         }
+
+        // 기지 시야 추가
+        foreach (Base playerBase in allBases)
+        {
+            if (playerBase.playerId == currentPlayer && playerBase.currentTile != null)
+            {
+                HashSet<HexTile> tilesInSight = GetTilesInSight(playerBase.currentTile, playerBase.sightRange);
+                visibleTiles.UnionWith(tilesInSight);
+            }
+        }
+
         return visibleTiles;
     }
 
