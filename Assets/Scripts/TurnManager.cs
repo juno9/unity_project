@@ -317,14 +317,14 @@ public class TurnManager : MonoBehaviour
         ResetAP();
         
         // 카메라 전환
-        Debug.Log($"카메라 전환 시도: cameraController={cameraController != null}, targetPlayer={currentPlayer}");
+        Debug.Log($"[Camera Log] 카메라 전환 시도: cameraController={(cameraController != null)}, targetPlayer={currentPlayer}");
         if (cameraController != null)
         {
             cameraController.TransitionToPlayerView(currentPlayer);
         }
         else
         {
-            Debug.LogWarning("cameraController가 null입니다. 카메라 전환이 작동하지 않습니다.");
+            Debug.LogWarning("[Camera Log] cameraController가 null입니다. 카메라 전환이 작동하지 않습니다.");
         }
         
         // 전장의 안개 업데이트

@@ -6,7 +6,12 @@ using System.Collections.Generic;
 
 public class UnitPlacer : MonoBehaviour
 {
-    [SerializeField] private GameObject skeletonPrefab; // 스켈레톤 프리팹을 Inspector에서 할당
+    [SerializeField] private GameObject unitPrefab; // 생성할 유닛 프리팹을 Inspector에서 할당
+
+    [Header("Player Materials")]
+    [SerializeField] private Material player1Material;
+    [SerializeField] private Material player2Material;
+
     public HexGrid hexGrid;
     private bool isPlacing = false;
     private bool isAttacking = false; // 공격 모드 추가
@@ -21,8 +26,8 @@ public class UnitPlacer : MonoBehaviour
     
     // 플레이어 관련 변수 추가
     private int currentPlayer = 1; // 1 또는 2
-    private Color player1Color = Color.blue;
-    private Color player2Color = new Color(1f, 0.5f, 0f); // 주황색
+    private Color player1Color = new Color(0.2f, 0.6f, 1f, 1f); // 파란색
+    private Color player2Color = new Color(1f, 0.5f, 0f, 1f); // 주황색
     public Button unitPlacementButton; // 버튼을 public으로 변경
     public Button attackButton; // 공격 버튼 추가
     public Button moveButton; // 이동 버튼 추가
@@ -55,9 +60,9 @@ public class UnitPlacer : MonoBehaviour
             damageTextObj.AddComponent<DamageText>();
         }
 
-        if (skeletonPrefab == null)
+        if (unitPrefab == null)
         {
-            Debug.LogError("Skeleton Prefab이 할당되지 않았습니다. Inspector에서 Skeleton Prefab을 할당해주세요.");
+            Debug.LogError("Unit Prefab이 할당되지 않았습니다. Inspector에서 Unit Prefab을 할당해주세요.");
             return;
         }
 
@@ -393,7 +398,7 @@ public class UnitPlacer : MonoBehaviour
         }
         if (tile.unitOnTile == null)
         {
-            GameObject newUnit = Instantiate(skeletonPrefab, tile.transform.position, Quaternion.identity);
+            GameObject newUnit = Instantiate(unitPrefab, tile.transform.position, Quaternion.identity);
             newUnit.transform.SetParent(tile.transform);
             newUnit.name = $"Unit_{tile.coordinates.x}_{tile.coordinates.y}";
             
@@ -405,37 +410,22 @@ public class UnitPlacer : MonoBehaviour
             unit.playerId = TurnManager.Instance.currentPlayer;
             unit.attackRange = isRangedPlacing ? 10 : 1; // 원거리/근거리 구분
 
-            // URP용 머티리얼 자동 할당 및 플레이어별 텍스처 적용
-            Transform geoMesh = newUnit.transform.Find("Geometry/geo/Skeleton");
-            if (geoMesh != null)
+            // 플레이어 ID에 따라 다른 머티리얼 적용
+            var renderer = newUnit.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (renderer != null)
             {
-                var smr = geoMesh.GetComponent<SkinnedMeshRenderer>();
-                if (smr != null)
+                if (unit.playerId == 1 && player1Material != null)
                 {
-                    Shader urpShader = Shader.Find("Universal Render Pipeline/Lit");
-                    if (urpShader != null)
-                    {
-                        Material urpMat = new Material(urpShader);
-                        // 플레이어별 텍스처 경로 지정 (tga 확장자, 파일명 반영)
-                        string texPath = unit.playerId == 1
-                            ? "Skeleton/Textures/SceletonVersion2"
-                            : "Skeleton/Textures/SceletonVersion3";
-                        Texture2D tex = Resources.Load<Texture2D>(texPath);
-                        if (tex != null)
-                        {
-                            urpMat.mainTexture = tex;
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"텍스처를 찾을 수 없습니다: {texPath}");
-                        }
-                        smr.material = urpMat;
-                    }
-                    else
-                    {
-                        Debug.LogError("URP용 Shader를 찾을 수 없습니다. Universal Render Pipeline/Lit이 프로젝트에 포함되어 있는지 확인하세요.");
-                    }
+                    renderer.material = player1Material;
                 }
+                else if (unit.playerId == 2 && player2Material != null)
+                {
+                    renderer.material = player2Material;
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"유닛 '{newUnit.name}'에서 SkinnedMeshRenderer를 찾을 수 없습니다. 플레이어 색상이 적용되지 않습니다.");
             }
 
             newUnit.SetActive(true);
@@ -450,14 +440,29 @@ public class UnitPlacer : MonoBehaviour
             unit.currentTile = tile;
             tile.unitOnTile = unit;
 
-            // --- 상대방 유닛을 바라보게 ---
+            // --- 유닛 방향 설정 ---
+            Vector3 lookTarget = Vector3.zero;
             List<Unit> opponentUnits = TurnManager.Instance.GetOpponentUnits(unit.playerId);
             if (opponentUnits != null && opponentUnits.Count > 0)
             {
-                // 가장 가까운 상대 유닛을 찾거나, 첫 번째 유닛을 기준으로
-                Vector3 targetPos = opponentUnits[0].transform.position;
-                newUnit.transform.LookAt(new Vector3(targetPos.x, newUnit.transform.position.y, targetPos.z));
+                // 1순위: 가장 가까운 적 유닛
+                lookTarget = opponentUnits[0].transform.position; // (개선 제안: 실제 가장 가까운 유닛을 찾도록 로직 추가 가능)
             }
+            else
+            {
+                // 2순위: 상대방 Base
+                Base opponentBase = FindPlayerBase(unit.playerId == 1 ? 2 : 1);
+                if (opponentBase != null)
+                {
+                    lookTarget = opponentBase.transform.position;
+                }
+                else
+                {
+                    // 3순위: 맵 중앙
+                    lookTarget = FindFirstObjectByType<HexGrid>().GetMapCenter();
+                }
+            }
+            newUnit.transform.LookAt(new Vector3(lookTarget.x, newUnit.transform.position.y, lookTarget.z));
             // --- ---
 
             // 유닛과 거점 연결선 그리기
@@ -855,6 +860,7 @@ public class UnitPlacer : MonoBehaviour
 
                         selectedUnit = hitUnit;
                         TurnManager.Instance.ShowUnitInfo(hitUnit);
+                        ShowActionButtons(); // 사용 가능한 행동 버튼 표시
 
                         // Display move and attack options simultaneously on the grid.
                         if (!selectedUnit.hasMoved)
@@ -1049,6 +1055,7 @@ public class UnitPlacer : MonoBehaviour
 
     private IEnumerator AttackMoveUnitAlongPath(Unit unit, List<HexTile> path, HexTile targetTile)
     {
+        Debug.Log("MoveUnitAlongPath started");
         Animator animator = unit.GetComponentInChildren<Animator>();
         if (animator != null) animator.SetBool("isWalking", true);
 
@@ -1102,4 +1109,4 @@ public class UnitPlacer : MonoBehaviour
     }
 
     
-} 
+}

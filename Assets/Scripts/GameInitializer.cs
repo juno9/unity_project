@@ -51,6 +51,16 @@ public class GameInitializer : MonoBehaviour
         {
             TurnManager.Instance.StartFirstTurn();
         }
+        // Base 생성이 완료된 후 카메라 초기 시점 설정
+        Debug.Log($"[Camera Log] GameInitializer: Bases should be spawned now. Checking for Base objects before camera transition.");
+        Base[] basesBeforeTransition = FindObjectsByType<Base>(FindObjectsSortMode.None);
+        Debug.Log($"[Camera Log] GameInitializer: Found {basesBeforeTransition.Length} Base objects before calling TransitionToPlayerView.");
+        
+        CameraController cameraController = FindFirstObjectByType<CameraController>();
+        if (cameraController != null)
+        {
+            cameraController.TransitionToPlayerView(1);
+        }
         
         // FogOfWar 업데이트
         FogOfWar fogOfWar = FindFirstObjectByType<FogOfWar>();
@@ -63,7 +73,7 @@ public class GameInitializer : MonoBehaviour
     private System.Collections.IEnumerator SpawnBaseAndUnit(int playerId, bool isRanged)
     {
         Color playerColor = playerId == 1 ? Color.blue : new Color(1f, 0.5f, 0f); // 주황색
-        Vector2Int spawnCoordinates = playerId == 1 ? new Vector2Int(10, 10) : new Vector2Int(20, 20);
+        Vector2Int spawnCoordinates = playerId == 1 ? new Vector2Int(10, 10) : new Vector2Int(30, 30);
         HexTile spawnTile = hexGrid.GetTileAt(spawnCoordinates);
 
         if (spawnTile != null)
