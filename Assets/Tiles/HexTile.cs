@@ -6,8 +6,11 @@ public class HexTile : MonoBehaviour
     public Vector2Int coordinates; // Grid coordinates
     public Vector3 position;      // World position
     public Unit unitOnTile;       // 이 타일에 있는 유닛
+    public Base baseOnTile;       // 이 타일에 있는 기지
     public List<HexTile> neighbors = new List<HexTile>(); // 경로 탐색용 이웃 타일
     
+    public bool isBase = false; // 거점 여부
+
     private MeshRenderer meshRenderer;
     private Color originalColor;
     private bool isOccupied = false; // 타일 점유 상태
@@ -16,7 +19,10 @@ public class HexTile : MonoBehaviour
     {
         meshRenderer = GetComponent<MeshRenderer>();
         if (meshRenderer != null)
+        {
+            meshRenderer.material = new Material(meshRenderer.material); // 새로운 Material 인스턴스 생성
             originalColor = meshRenderer.material.color;
+        }
 
         MeshFilter mf = GetComponent<MeshFilter>();
         MeshCollider mc = GetComponent<MeshCollider>();
@@ -26,6 +32,12 @@ public class HexTile : MonoBehaviour
             mc.sharedMesh = mf.sharedMesh;
     }
 
+    public void SetBase()
+    {
+        isBase = true;
+        SetColor(Color.green);
+    }
+
     public void Initialize(Vector2Int coords)
     {
         coordinates = coords;
@@ -33,9 +45,11 @@ public class HexTile : MonoBehaviour
 
     public void SetColor(Color color)
     {
+        Debug.Log($"[HexTile] {coordinates} 색상 변경 시도: {color}");
         if (meshRenderer != null && meshRenderer.material != null)
         {
             meshRenderer.material.color = color;
+            Debug.Log($"[HexTile] {coordinates} 색상 변경 완료: {color}");
         }
     }
 
@@ -67,17 +81,21 @@ public class HexTile : MonoBehaviour
     public int GetDistanceTo(HexTile other)
     {
         if (other == null) return int.MaxValue;
-        
-        Vector2Int delta = coordinates - other.coordinates;
-        
-        // 육각형 그리드에서의 거리 계산
-        int distance = Mathf.Max(
-            Mathf.Abs(delta.x),
-            Mathf.Abs(delta.y),
-            Mathf.Abs(delta.x + delta.y)
-        );
-        
-        return distance;
+
+        // 현재 타일(self)의 큐브 좌표 변환
+        int self_q = coordinates.x - (coordinates.y + (coordinates.y & 1)) / 2;
+        int self_r = coordinates.y;
+        int self_s = -self_q - self_r;
+
+        // 다른 타일(other)의 큐브 좌표 변환
+        int other_q = other.coordinates.x - (other.coordinates.y + (other.coordinates.y & 1)) / 2;
+        int other_r = other.coordinates.y;
+        int other_s = -other_q - other_r;
+
+        // 큐브 좌표계에서의 거리 계산
+        return (Mathf.Abs(self_q - other_q) 
+              + Mathf.Abs(self_r - other_r) 
+              + Mathf.Abs(self_s - other_s)) / 2;
     }
 
     public void PlaceUnit(GameObject unitObject)

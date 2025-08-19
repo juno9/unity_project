@@ -3,9 +3,12 @@ using System.Collections.Generic;
 
 public class HexGrid : MonoBehaviour
 {
-    public GameObject hexTilePrefab;
+    public GameObject hexTilePrefab; // 이제 이 프리팹을 사용합니다.
     [SerializeField] public int mapWidth = 20;    // 기본 맵 가로 크기
     [SerializeField] public int mapHeight = 15;   // 기본 맵 세로 크기
+
+    public int width => mapWidth;
+    public int height => mapHeight;
     
     private float hexSize = 1.0f; // 육각형의 반지름 (중심에서 꼭지점까지의 거리)
     private float hexWidth;       // 육각형의 가로 길이
@@ -17,42 +20,19 @@ public class HexGrid : MonoBehaviour
 
     void Start()
     {
+        transform.position = new Vector3(transform.position.x, -0.1f, transform.position.z); // Add this line
+
         // 육각형의 크기 계산
         hexWidth = hexSize * 2f;                  // 가로 길이 = 반지름 * 2
         hexHeight = hexSize * Mathf.Sqrt(3f);     // 세로 길이 = 반지름 * √3
         
         GenerateGrid();
-        // 카메라에 맵 중앙 전달
-        CameraController camCtrl = Camera.main != null ? Camera.main.GetComponent<CameraController>() : null;
-        if (camCtrl != null)
-            camCtrl.mapCenter = GetMapCenter();
+        
     }
 
     void Update()
     {
-        // 우클릭 시작
-        if (Input.GetMouseButtonDown(1))
-        {
-            isRotating = true;
-            lastMousePosition = Input.mousePosition;
-        }
-        // 우클릭 끝
-        if (Input.GetMouseButtonUp(1))
-        {
-            isRotating = false;
-        }
-
-        // 우클릭 중 마우스 이동 시 XY축 회전
-        if (isRotating)
-        {
-            Vector3 delta = Input.mousePosition - lastMousePosition;
-            float rotationSpeed = 0.3f; // 회전 속도 조절
-            // Y축(수직축) 회전 (좌우 드래그)
-            transform.Rotate(Vector3.up, delta.x * rotationSpeed, Space.World);
-            // X축(좌우축) 회전 (상하 드래그)
-            transform.Rotate(Vector3.right, -delta.y * rotationSpeed, Space.World);
-            lastMousePosition = Input.mousePosition;
-        }
+        // 카메라 컨트롤은 CameraController.cs로 이전되었습니다.
     }
 
     public void GenerateGrid()
@@ -67,6 +47,13 @@ public class HexGrid : MonoBehaviour
         }
 
         tiles = new HexTile[mapWidth, mapHeight];
+
+        // hexTilePrefab이 할당되었는지 확인
+        if (hexTilePrefab == null)
+        {
+            Debug.LogError("HexGrid: hexTilePrefab이 할당되지 않았습니다. Inspector에서 할당해주세요.");
+            return;
+        }
 
         for (int y = 0; y < mapHeight; y++)
         {
@@ -102,93 +89,45 @@ public class HexGrid : MonoBehaviour
         }
     }
 
-    private GameObject CreateHexTileObject(Vector3 position, float radius, float height = 0.1f)
-    {
-        GameObject tile = new GameObject("HexTile");
-        tile.transform.position = position;
-
-        MeshFilter mf = tile.AddComponent<MeshFilter>();
-        MeshRenderer mr = tile.AddComponent<MeshRenderer>();
-        Mesh mesh = new Mesh();
-
-        // 꼭짓점: 윗면 6개, 아랫면 6개, 중심 2개(윗면, 아랫면)
-        Vector3[] vertices = new Vector3[14];
-        for (int i = 0; i < 6; i++)
-        {
-            float angle = Mathf.Deg2Rad * (60 * i);
-            float x = Mathf.Cos(angle) * radius;
-            float z = Mathf.Sin(angle) * radius;
-            vertices[i] = new Vector3(x, height * 0.5f, z);      // 윗면
-            vertices[i + 6] = new Vector3(x, -height * 0.5f, z); // 아랫면
-        }
-        vertices[12] = new Vector3(0, height * 0.5f, 0);   // 윗면 중심
-        vertices[13] = new Vector3(0, -height * 0.5f, 0);  // 아랫면 중심
-
-        // 삼각형 인덱스
-        System.Collections.Generic.List<int> triangles = new System.Collections.Generic.List<int>();
-
-        // 윗면
-        for (int i = 0; i < 6; i++)
-        {
-            triangles.Add(12);
-            triangles.Add(i);
-            triangles.Add((i + 1) % 6);
-        }
-        // 아랫면
-        for (int i = 0; i < 6; i++)
-        {
-            triangles.Add(13);
-            triangles.Add(6 + (i + 1) % 6);
-            triangles.Add(6 + i);
-        }
-        // 옆면
-        for (int i = 0; i < 6; i++)
-        {
-            int next = (i + 1) % 6;
-            triangles.Add(i);
-            triangles.Add(6 + i);
-            triangles.Add(6 + next);
-
-            triangles.Add(i);
-            triangles.Add(6 + next);
-            triangles.Add(next);
-        }
-
-        mesh.vertices = vertices;
-        mesh.triangles = triangles.ToArray();
-        mesh.RecalculateNormals();
-        mf.mesh = mesh;
-
-        mr.material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        mr.material.color = Color.gray;
-
-        var border = tile.AddComponent<TileBorder>();
-        border.radius = radius;
-        border.transform.localRotation = Quaternion.identity;
-
-        // HexTile 컴포넌트 강제 부착
-        var hexTile = tile.GetComponent<HexTile>();
-        if (hexTile == null)
-            hexTile = tile.AddComponent<HexTile>();
-        return tile;
-    }
+    // CreateHexTileObject 함수는 이제 사용하지 않습니다.
+    // private GameObject CreateHexTileObject(Vector3 position, float radius, float height = 0.1f) { ... }
 
     private void CreateHexTile(Vector2Int coordinates)
     {
-        float r = 0.5f;
+        float r = 0.5f; // 타일 반지름
         float width = r * 2f;
         float height = Mathf.Sqrt(3f) * r;
         float xPos = coordinates.x * width * 0.75f;
         float zPos = coordinates.y * height + (coordinates.x % 2 == 1 ? height / 2f : 0);
         Vector3 position = new Vector3(xPos, 0, zPos);
-        GameObject tileObject = CreateHexTileObject(position, r, 0.1f);
+
+        // hexTilePrefab을 Instantiate
+        GameObject tileObject = Instantiate(hexTilePrefab, position, Quaternion.identity);
         tileObject.name = $"Hex_{coordinates.x}_{coordinates.y}";
-        // BoxCollider 추가
-        var collider = tileObject.AddComponent<BoxCollider>();
-        collider.size = new Vector3(r * 2f, 0.2f, height);
-        collider.center = new Vector3(0, 0, 0);
-        // HexTile 컴포넌트가 있으면 배열과 리스트에 추가
+        tileObject.transform.SetParent(transform); // HexGrid 아래에 자식으로 생성
+
+        // HexTile 컴포넌트 확인 및 추가
         HexTile tile = tileObject.GetComponent<HexTile>();
+        if (tile == null)
+            tile = tileObject.AddComponent<HexTile>();
+        
+        // TileBorder 컴포넌트 확인 및 추가 (필요하다면)
+        TileBorder tileBorder = tileObject.GetComponent<TileBorder>();
+        if (tileBorder == null)
+            tileBorder = tileObject.AddComponent<TileBorder>();
+        // TileBorder의 radius 설정 (프리팹에 이미 설정되어 있다면 불필요)
+        tileBorder.radius = r; 
+
+        // BoxCollider 확인 및 추가 (프리팹에 이미 있다면 불필요)
+        BoxCollider collider = tileObject.GetComponent<BoxCollider>();
+        if (collider == null)
+        {
+            collider = tileObject.AddComponent<BoxCollider>();
+            collider.size = new Vector3(r * 2f, 0.2f, height);
+            collider.center = new Vector3(0, 0, 0);
+        }
+
+        // HexTile 컴포넌트가 있으면 배열과 리스트에 추가
         if (tile != null)
         {
             tile.Initialize(coordinates);
@@ -280,4 +219,22 @@ public class HexGrid : MonoBehaviour
         }
         return allTiles;
     }
-} 
+
+    // 전장의 안개를 위해 그리드의 월드 좌표 경계를 반환하는 메서드
+    public Bounds GetGridWorldBounds()
+    {
+        if (tilesList.Count == 0) return new Bounds(Vector3.zero, Vector3.zero);
+
+        Bounds bounds = new Bounds(tilesList[0].transform.position, Vector3.zero);
+        foreach (HexTile tile in tilesList)
+        {
+            bounds.Encapsulate(tile.transform.position);
+        }
+        // 타일 크기를 고려하여 경계를 약간 확장합니다.
+        float r = 0.5f;
+        float width = r * 2f;
+        float height = Mathf.Sqrt(3f) * r;
+        bounds.Expand(new Vector3(width, 0, height) * 0.5f);
+        return bounds;
+    }
+}
