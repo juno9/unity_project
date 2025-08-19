@@ -7,7 +7,7 @@ public class TileBorder : MonoBehaviour
     public Color lineColor = Color.black;
     public float radius = 0.5f; // 육각형 반지름 (HexTile의 크기에 맞게 조정)
 
-    void Start()
+    void Awake()
     {
         InitializeLineRenderer();
     }
@@ -19,7 +19,19 @@ public class TileBorder : MonoBehaviour
         lineRenderer.useWorldSpace = false;
         lineRenderer.startWidth = lineWidth;
         lineRenderer.endWidth = lineWidth;
-        lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+
+        Shader defaultShader = Shader.Find("Sprites/Default");
+        if (defaultShader == null)
+        {
+            Debug.LogError("TileBorder: 'Sprites/Default' 셰이더를 찾을 수 없습니다. 기본 머티리얼을 사용할 수 없습니다.");
+            // 대체 셰이더나 머티리얼을 사용하거나, 오류 처리
+            lineRenderer.material = new Material(Shader.Find("Standard")); // 대체 셰이더
+        }
+        else
+        {
+            lineRenderer.material = new Material(defaultShader);
+        }
+
         lineRenderer.startColor = lineColor;
         lineRenderer.endColor = lineColor;
 
@@ -39,10 +51,11 @@ public class TileBorder : MonoBehaviour
     {
         if (lineRenderer == null)
         {
-            InitializeLineRenderer();
+            Debug.LogError("TileBorder: LineRenderer가 초기화되지 않았습니다. 색상 변경 불가.");
+            return;
         }
         lineColor = color;
         lineRenderer.startColor = lineColor;
         lineRenderer.endColor = lineColor;
     }
-} 
+}

@@ -65,12 +65,25 @@ public class Unit : MonoBehaviour
         }
 
         int distance = GetDistanceToUnit(target);
-        Debug.Log($"공격 시도: {name} -> {target.name}, 거리: {distance}, 공격범위: {attackRange}");
         if (distance > attackRange + 0.1f) // 오차 허용
         {
             Debug.Log($"공격 범위를 벗어났습니다. 거리: {distance}, 공격 범위: {attackRange}");
             return;
         }
+
+        // --- 애니메이션 실행 로그 ---
+        Debug.Log($"[Animation Log] Attack method entered for {name}. Trying to find Animator.");
+        Animator animator = GetComponentInChildren<Animator>();
+        if (animator != null)
+        {
+            Debug.Log("[Animation Log] Animator found! Setting 'doAttack' trigger.");
+            animator.SetTrigger("doAttack");
+        }
+        else
+        {
+            Debug.LogError($"[Animation Log] Animator NOT FOUND on {name} or its children. Animation will not play.");
+        }
+        // ---
 
         target.TakeDamage(attackPower);
         hasAttacked = true;
@@ -87,6 +100,7 @@ public class Unit : MonoBehaviour
         return currentTile.GetDistanceTo(target.currentTile);
     }
 
+    // CanAttack을 원래의 깔끔한 버전으로 되돌립니다.
     public bool CanAttack(Unit target)
     {
         if (hasAttacked || target == null || target.playerId == playerId)
@@ -118,4 +132,4 @@ public class Unit : MonoBehaviour
         currentTile = FindFirstObjectByType<HexGrid>().GetTileAt(targetTile.coordinates);
         Debug.Log($"[이동] unit.currentTile set: {currentTile != null}, tile: {targetTile.coordinates}");
     }
-} 
+}

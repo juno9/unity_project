@@ -4,195 +4,164 @@ using System.Collections.Generic;
 
 public class CameraController : MonoBehaviour
 {
-    [Header("카메라 이동 설정")]
-    public float moveSpeed = 10f;      // 카메라 이동 속도
-    public float edgeSize = 10f;       // 화면 끝에서 몇 픽셀 이내면 이동할지
-    public Vector2 minPosition = new Vector2(0, -200);   // 맵 최소 X,Z (아래로 더 이동 가능)
-    public Vector2 maxPosition = new Vector2(20, 25); // 맵 최대 X,Z (맵 크기에 맞게 조정)
-    public Vector3 mapCenter;
-    
-    [Header("턴 전환 카메라 설정")]
-    public bool enableTurnTransition = true; // 턴 전환 시 카메라 회전 활성화
-    public float turnTransitionHeight = 10f; // 턴 전환 시 카메라 높이
-    public float turnTransitionDistance = 5f; // 턴 전환 시 카메라 거리
-    
-    private Vector3 originalPosition; // 원래 카메라 위치
-    private Quaternion originalRotation; // 원래 카메라 회전
-    private int currentPlayerView = 1; // 현재 카메라가 바라보는 플레이어
-    private bool isRegistered = false; // 등록 상태 추적
-    private Vector3 initialPosition;
-    private Quaternion initialRotation;
-    private float initialOrthoSize;
+    [Header("카메라 이동/경계 설정")]
+    public float moveSpeed = 20f;
+    public float edgeSize = 20f;
+    public Vector2 minPosition = new Vector2(-10, -10);
+    public Vector2 maxPosition = new Vector2(30, 30);
+
+    [Header("카메라 줌 설정")]
+    public float zoomSpeed = 5f;
+    public float minOrthoSize = 5f;
+    public float maxOrthoSize = 20f;
+
+    [Header("턴 전환/시점 설정")]
+    public Vector3 mapCenter = Vector3.zero;
+    public float cameraHeight = 15f;
+    public float cameraDistance = 10f;
+
+    private Base player1Base;
+    private Base player2Base;
+    private Camera cam;
+    private bool isRegistered = false;
+    private int currentPlayerView = 1; // 이 변수가 HandleKeyboardPan에서 사용됩니다.
 
     void Start()
     {
-        // mapCenter 자동 설정
+        cam = GetComponent<Camera>();
+        cam.orthographic = true; // 항상 직교 모드로 설정
+
+        // 맵 중앙 자동 설정
         if (mapCenter == Vector3.zero)
         {
             HexGrid hexGrid = FindFirstObjectByType<HexGrid>();
-            if (hexGrid != null)
-            {
-                mapCenter = hexGrid.GetMapCenter();
-                Debug.Log($"mapCenter가 자동으로 설정되었습니다: {mapCenter}");
-            }
-            else
-            {
-                // HexGrid가 없으면 기본값 설정
-                mapCenter = new Vector3(10f, 0f, 7.5f); // 20x15 맵의 중앙
-                Debug.LogWarning("HexGrid를 찾을 수 없어 기본 mapCenter를 사용합니다.");
-            }
+            if (hexGrid != null) mapCenter = hexGrid.GetMapCenter();
+            else mapCenter = new Vector3(10, 0, 7.5f);
         }
-        
-        // 최초 카메라 위치/회전/orthographicSize 저장
-        Camera cam = GetComponent<Camera>();
-        initialPosition = transform.position;
-        initialRotation = transform.rotation;
-        if (cam != null)
+
+        // 각 플레이어의 Base 찾기
+        Base[] allBases = FindObjectsByType<Base>(FindObjectsSortMode.None);
+        Debug.Log($"[Camera Log] CameraController found {allBases.Length} Base objects in scene at Start().");
+        foreach (Base b in allBases)
         {
-            cam.orthographic = true;
-            initialOrthoSize = cam.orthographicSize;
+            if (b.playerId == 1) player1Base = b;
+            else if (b.playerId == 2) player2Base = b;
         }
-        else
-        {
-            initialOrthoSize = 12f;
-        }
-        
-        originalPosition = initialPosition;
-        originalRotation = initialRotation;
-        
+        if (player1Base == null) Debug.LogWarning("[Camera Log] Player 1 Base not found at Start().");
+        if (player2Base == null) Debug.LogWarning("[Camera Log] Player 2 Base not found at Start().");
+
         // TurnManager 등록 시도
         TryRegisterWithTurnManager();
+        
+        // 초기 카메라 위치 설정은 GameInitializer에서 호출하도록 변경
+        // TransitionToPlayerView(1);
     }
 
     void Update()
     {
-        // TurnManager 등록 재시도 (매 프레임마다 시도)
-        if (TurnManager.Instance != null && !isRegistered)
+        if (TurnManager.Instance != null && !isRegistered) TryRegisterWithTurnManager();
+
+        HandleMouseZoom();
+        HandleKeyboardPan();
+    }
+
+    private void HandleMouseZoom()
+    {
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        if (scroll != 0f)
         {
-            TryRegisterWithTurnManager();
+            cam.orthographicSize -= scroll * zoomSpeed;
+            cam.orthographicSize = Mathf.Clamp(cam.orthographicSize, minOrthoSize, maxOrthoSize);
         }
-        
+    }
+
+    private void HandleKeyboardPan()
+    {
         Vector3 pos = transform.position;
-        Vector3 mousePos = Input.mousePosition;
+        Vector3 initialPos = pos; // 로그용 초기 위치
 
-        // 왼쪽
-        if (mousePos.x <= edgeSize)
-            pos.x -= moveSpeed * Time.deltaTime;
-        // 오른쪽
-        if (mousePos.x >= Screen.width - edgeSize)
-            pos.x += moveSpeed * Time.deltaTime;
-        // 아래
-        if (mousePos.y <= edgeSize)
-            pos.z -= moveSpeed * Time.deltaTime;
-        // 위
-        if (mousePos.y >= Screen.height - edgeSize)
-            pos.z += moveSpeed * Time.deltaTime;
+        float horizontalInput = Input.GetAxis("Horizontal"); // A/D keys
+        float verticalInput = Input.GetAxis("Vertical");   // W/S keys
 
-        // 맵 범위 제한
+        // 플레이어 2 턴일 때 수직 입력 반전 (월드 Z축 기준)
+        if (cam != null && cam.orthographic && currentPlayerView == 2)
+        {
+            verticalInput *= -1; // Player 2 턴일 때만 Z축 이동 방향 반전
+            Debug.Log($"[Camera Log] Player 2 turn: Vertical input inverted for world Z-axis to {verticalInput}");
+        }
+        else
+        {
+            Debug.Log($"[Camera Log] Player 1 turn: Vertical input for world Z-axis {verticalInput}");
+        }
+
+        // 월드 X축 이동
+        pos.x += horizontalInput * moveSpeed * Time.deltaTime;
+        // 월드 Z축 이동
+        pos.z += verticalInput * moveSpeed * Time.deltaTime;
+
+        Debug.Log($"[Camera Log] Raw Input: H={horizontalInput}, V={Input.GetAxis("Vertical")}");
+        Debug.Log($"[Camera Log] Adjusted V Input (for world Z): {verticalInput}");
+        Debug.Log($"[Camera Log] Pos before clamp: {pos}");
+
         pos.x = Mathf.Clamp(pos.x, minPosition.x, maxPosition.x);
-        pos.z = Mathf.Clamp(pos.z, minPosition.y, maxPosition.y);
+        pos.z = Mathf.Clamp(pos.z, minPosition.y, maxPosition.y); // minPosition.y/maxPosition.y는 Z축 경계
+
+        Debug.Log($"[Camera Log] Pos after clamp: {pos}");
+        Debug.Log($"[Camera Log] Movement Delta: {pos - initialPos}");
 
         transform.position = pos;
     }
-    
+
     private void TryRegisterWithTurnManager()
     {
-        if (isRegistered) return; // 이미 등록되어 있으면 스킵
-        
+        if (isRegistered) return;
         if (TurnManager.Instance != null)
         {
             TurnManager.Instance.RegisterCameraController(this);
             isRegistered = true;
-            Debug.Log("CameraController가 TurnManager에 등록되었습니다.");
         }
     }
-    
-    // 턴 전환 시 카메라 회전
+
     public void TransitionToPlayerView(int playerId)
     {
-        Debug.Log($"TransitionToPlayerView 호출됨: playerId={playerId}, enableTurnTransition={enableTurnTransition}, currentPlayerView={currentPlayerView}");
-        
-        if (!enableTurnTransition || currentPlayerView == playerId) 
+        // Base가 Start()에서 찾아지지 않았을 경우, 다시 찾아보기
+        if (player1Base == null || player2Base == null)
         {
-            Debug.Log($"카메라 전환이 취소됨: enableTurnTransition={enableTurnTransition}, currentPlayerView={currentPlayerView}");
+            Base[] allBases = FindObjectsByType<Base>(FindObjectsSortMode.None);
+            foreach (Base b in allBases)
+            {
+                if (b.playerId == 1) player1Base = b;
+                else if (b.playerId == 2) player2Base = b;
+            }
+            if (player1Base == null) Debug.LogWarning("[Camera Log] Player 1 Base still not found during Transition retry.");
+            if (player2Base == null) Debug.LogWarning("[Camera Log] Player 2 Base still not found during Transition retry.");
+        }
+
+        Base targetBase = (playerId == 1) ? player1Base : player2Base;
+        Base opponentBase = (playerId == 1) ? player2Base : player1Base; // 상대방 Base
+
+        if (targetBase == null || opponentBase == null)
+        {
+            Debug.LogWarning($"[Camera Log] 플레이어 {playerId}의 Base 또는 상대방 Base를 찾을 수 없어 카메라를 이동할 수 없습니다. (Base 객체가 존재하지 않음)");
+            // Base가 없을 경우 맵 중앙을 기준으로 기본 위치 설정
+            transform.position = new Vector3(mapCenter.x, cameraHeight, mapCenter.z - cameraDistance);
+            transform.rotation = Quaternion.Euler(45, 0, 0); // 기본 45도 각도
             return;
         }
-        
-        Debug.Log($"카메라 전환 시작: 플레이어 {playerId} 시점으로");
-        TransitionCameraImmediate(playerId);
-    }
-    
-    private void TransitionCameraImmediate(int targetPlayerId)
-    {
-        currentPlayerView = targetPlayerId;
 
-        // 플레이어에 상관없이 항상 같은 시야로 설정
-        Vector3 basePos = initialPosition;
-        Quaternion baseRot = initialRotation;
-        float orthoSize = initialOrthoSize;
-        Camera cam = GetComponent<Camera>();
+        // 목표 위치 계산 (Base 위치에서 상대방 Base 반대 방향으로 물러나기 + 높이)
+        Vector3 directionAwayFromOpponent = (targetBase.transform.position - opponentBase.transform.position).normalized;
+        Vector3 targetPosition = targetBase.transform.position + directionAwayFromOpponent * cameraDistance + Vector3.up * cameraHeight;
 
-        Vector3 targetPosition = basePos;
-        Quaternion targetRotation = baseRot;
+        // 목표 회전값 계산 (상대방 Base를 바라보도록 + 45도 아래로 기울기)
+        Vector3 lookDirection = opponentBase.transform.position - targetPosition;
+        Quaternion horizontalRotation = Quaternion.LookRotation(new Vector3(lookDirection.x, 0, lookDirection.z)); // 수평 방향만
+        Quaternion finalRotation = horizontalRotation * Quaternion.Euler(45, 0, 0); // 45도 아래로 기울기 적용
 
-        // 즉시 위치, 회전, Orthographic 모드/사이즈 변경
+        // 카메라 즉시 이동 및 회전
         transform.position = targetPosition;
-        transform.rotation = targetRotation;
-        if (cam != null)
-        {
-            cam.orthographic = true;
-            cam.orthographicSize = orthoSize;
-        }
+        transform.rotation = finalRotation;
 
-        Debug.Log($"카메라가 플레이어 {targetPlayerId} 시점으로(공통 시야) 즉시 전환되었습니다.");
-    }
-    
-    // 카메라를 원래 위치로 리셋
-    public void ResetCamera()
-    {
-        transform.position = initialPosition;
-        transform.rotation = initialRotation;
-        currentPlayerView = 1;
-        Camera cam = GetComponent<Camera>();
-        if (cam != null)
-        {
-            cam.orthographic = true;
-            cam.orthographicSize = initialOrthoSize;
-        }
-        Debug.Log("카메라가 원래 위치로 직교로 즉시 리셋되었습니다.");
-    }
-
-    public void FrameWholeMap()
-    {
-        HexGrid grid = FindFirstObjectByType<HexGrid>();
-        if (grid == null) return;
-
-        Camera cam = GetComponent<Camera>();
-        if (cam == null) return;
-
-        // 맵의 중앙으로 카메라 이동
-        Vector3 mapCenter = grid.GetMapCenter();
-        transform.position = new Vector3(mapCenter.x, transform.position.y, mapCenter.z);
-
-        // 맵 전체를 담을 수 있는 orthographic size 계산
-        float screenAspect = (float)Screen.width / Screen.height;
-        float mapAspect = (float)grid.width / grid.height;
-
-        float requiredSize;
-        if (screenAspect >= mapAspect)
-        {
-            requiredSize = grid.height / 2f;
-        }
-        else
-        {
-            float newWidth = grid.height * screenAspect;
-            requiredSize = (grid.height / 2f) * (grid.width / newWidth);
-        }
-
-        cam.orthographicSize = requiredSize * 1.2f; // 약간의 여백을 줌
-
-        // 카메라 이동 범위도 맵 크기에 맞게 재설정
-        minPosition = new Vector2(0, 0);
-        maxPosition = new Vector2(grid.width, grid.height);
+        Debug.Log($"[Camera Log] 카메라가 플레이어 {playerId}의 Base 시점으로 전환되었습니다. (직교 모드)");
     }
 }
