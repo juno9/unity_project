@@ -59,7 +59,21 @@ public class GameInitializer : MonoBehaviour
         CameraController cameraController = FindFirstObjectByType<CameraController>();
         if (cameraController != null)
         {
-            cameraController.TransitionToPlayerView(1);
+            Base player1Base = null;
+            Base[] bases = FindObjectsByType<Base>(FindObjectsSortMode.None);
+            foreach (Base b in bases)
+            {
+                if (b.playerId == 1)
+                {
+                    player1Base = b;
+                    break;
+                }
+            }
+
+            if (player1Base != null)
+            {
+                cameraController.TransitionToPlayerView(player1Base.transform.position, 1);
+            }
         }
         
         // FogOfWar 업데이트
@@ -73,7 +87,56 @@ public class GameInitializer : MonoBehaviour
     private System.Collections.IEnumerator SpawnBaseAndUnit(int playerId, bool isRanged)
     {
         Color playerColor = playerId == 1 ? Color.blue : new Color(1f, 0.5f, 0f); // 주황색
-        Vector2Int spawnCoordinates = playerId == 1 ? new Vector2Int(10, 10) : new Vector2Int(30, 30);
+
+        Vector2Int spawnCoordinates;
+        int minX, maxX, minY, maxY;
+
+        // Define spawn regions for each player
+        if (playerId == 1)
+        {
+            minX = 0;
+            maxX = hexGrid.mapWidth / 2 - 1;
+            minY = 0;
+            maxY = hexGrid.mapHeight - 1;
+        }
+        else // playerId == 2
+        {
+            minX = hexGrid.mapWidth / 2;
+            maxX = hexGrid.mapWidth - 1;
+            minY = 0;
+            maxY = hexGrid.mapHeight - 1;
+        }
+
+        // Find a random unoccupied tile within the designated area
+        HexTile foundTile = null;
+        int attempts = 0;
+        int maxAttempts = 100;
+
+        while (foundTile == null && attempts < maxAttempts)
+        {
+            int randomX = Random.Range(minX, maxX + 1); // +1 because Random.Range is exclusive for int max
+            int randomY = Random.Range(minY, maxY + 1);
+            Vector2Int potentialCoords = new Vector2Int(randomX, randomY);
+            
+            HexTile tile = hexGrid.GetTileAt(potentialCoords);
+            if (tile != null && !tile.IsOccupied()) // Use IsOccupied() method
+            {
+                foundTile = tile;
+            }
+            attempts++;
+        }
+
+        if (foundTile != null)
+        {
+            spawnCoordinates = foundTile.coordinates;
+        }
+        else
+        {
+            Debug.LogWarning($"Could not find a random spawn tile for Player {playerId} after {maxAttempts} attempts. Using default.");
+            // Fallback to a fixed position if random fails
+            spawnCoordinates = playerId == 1 ? new Vector2Int(0, 0) : new Vector2Int(hexGrid.mapWidth - 1, hexGrid.mapHeight - 1);
+        }
+
         HexTile spawnTile = hexGrid.GetTileAt(spawnCoordinates);
 
         if (spawnTile != null)
