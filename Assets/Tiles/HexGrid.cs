@@ -20,42 +20,19 @@ public class HexGrid : MonoBehaviour
 
     void Start()
     {
+        transform.position = new Vector3(transform.position.x, -0.1f, transform.position.z); // Add this line
+
         // 육각형의 크기 계산
         hexWidth = hexSize * 2f;                  // 가로 길이 = 반지름 * 2
         hexHeight = hexSize * Mathf.Sqrt(3f);     // 세로 길이 = 반지름 * √3
         
         GenerateGrid();
-        // 카메라에 맵 중앙 전달
-        CameraController camCtrl = Camera.main != null ? Camera.main.GetComponent<CameraController>() : null;
-        if (camCtrl != null)
-            camCtrl.mapCenter = GetMapCenter();
+        
     }
 
     void Update()
     {
-        // 우클릭 시작
-        if (Input.GetMouseButtonDown(1))
-        {
-            isRotating = true;
-            lastMousePosition = Input.mousePosition;
-        }
-        // 우클릭 끝
-        if (Input.GetMouseButtonUp(1))
-        {
-            isRotating = false;
-        }
-
-        // 우클릭 중 마우스 이동 시 XY축 회전
-        if (isRotating)
-        {
-            Vector3 delta = Input.mousePosition - lastMousePosition;
-            float rotationSpeed = 0.3f; // 회전 속도 조절
-            // Y축(수직축) 회전 (좌우 드래그)
-            transform.Rotate(Vector3.up, delta.x * rotationSpeed, Space.World);
-            // X축(좌우축) 회전 (상하 드래그)
-            transform.Rotate(Vector3.right, -delta.y * rotationSpeed, Space.World);
-            lastMousePosition = Input.mousePosition;
-        }
+        // 카메라 컨트롤은 CameraController.cs로 이전되었습니다.
     }
 
     public void GenerateGrid()

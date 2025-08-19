@@ -31,6 +31,18 @@ public class TurnManager : MonoBehaviour
     private FogOfWar fogOfWar; // 전장의 안개 참조
     private Coroutine turnTimerCoroutine; // 턴 타이머 코루틴
 
+    private CameraController CamController
+    {
+        get
+        {
+            if (cameraController == null)
+            {
+                cameraController = FindObjectOfType<CameraController>();
+            }
+            return cameraController;
+        }
+    }
+
     private void Awake()
     {
         if (Instance == null)
@@ -189,9 +201,12 @@ public class TurnManager : MonoBehaviour
         player2AP = MAX_AP;
         UpdateAPUI();
         
-        if (cameraController != null)
+        if (CamController != null)
         {
-            cameraController.TransitionToPlayerView(currentPlayer);
+            if (player1Units.Count > 0)
+            {
+                CamController.TransitionToPlayerView(player1Units[0].transform.position, 1);
+            }
         }
         
         if (fogOfWar != null)
@@ -317,10 +332,14 @@ public class TurnManager : MonoBehaviour
         ResetAP();
         
         // 카메라 전환
-        Debug.Log($"[Camera Log] 카메라 전환 시도: cameraController={(cameraController != null)}, targetPlayer={currentPlayer}");
-        if (cameraController != null)
+        Debug.Log($"[Camera Log] 카메라 전환 시도: cameraController={(CamController != null)}, targetPlayer={currentPlayer}");
+        if (CamController != null)
         {
-            cameraController.TransitionToPlayerView(currentPlayer);
+            List<Unit> nextPlayerUnits = (currentPlayer == 1) ? player1Units : player2Units;
+            if (nextPlayerUnits.Count > 0)
+            {
+                CamController.TransitionToPlayerView(nextPlayerUnits[0].transform.position, currentPlayer);
+            }
         }
         else
         {
