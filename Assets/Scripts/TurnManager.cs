@@ -271,11 +271,7 @@ public class TurnManager : MonoBehaviour
             unitPlacer.attackButton.GetComponent<Image>().color = new Color(1f, 0.3f, 0.3f, 1f); // 빨간색 유지
         }
 
-        // 이동 버튼 색상 업데이트
-        if (unitPlacer != null && unitPlacer.moveButton != null)
-        {
-            unitPlacer.moveButton.GetComponent<Image>().color = new Color(0.3f, 1f, 0.3f, 1f); // 초록색 유지
-        }
+        
     }
 
     public void RegisterUnit(Unit unit)

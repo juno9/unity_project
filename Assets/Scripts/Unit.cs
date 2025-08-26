@@ -6,9 +6,9 @@ public class Unit : MonoBehaviour
     public int maxHealth = 10;
     public int currentHealth;
     public int attackPower = 10;
-    public int moveRange = 2;
+    public int moveRange = 6;
     public int sightRange = 4; // 시야 범위 추가
-    public int attackRange = 1;
+    public int attackRange = 15;
     public bool hasMoved = false;
     public bool hasAttacked = false;
     public HexTile currentTile;
