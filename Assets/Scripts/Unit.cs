@@ -6,9 +6,9 @@ public class Unit : MonoBehaviour
     public int maxHealth = 10;
     public int currentHealth;
     public int attackPower = 10;
-    public int moveRange = 2;
+    public int moveRange = 6;
     public int sightRange = 4; // 시야 범위 추가
-    public int attackRange = 1;
+    public int attackRange = 15;
     public bool hasMoved = false;
     public bool hasAttacked = false;
     public HexTile currentTile;
@@ -29,7 +29,7 @@ public class Unit : MonoBehaviour
     public void TakeDamage(int damage)
     {
         currentHealth -= damage;
-        Debug.Log($"유닛 {name}이(가) {damage} 데미지를 받았습니다. 남은 체력: {currentHealth}");
+        
         
         // 데미지 텍스트 표시
         if (DamageText.Instance != null)
@@ -48,35 +48,35 @@ public class Unit : MonoBehaviour
     {
         if (hasAttacked)
         {
-            Debug.Log("이미 공격했습니다.");
+            
             return;
         }
 
         if (target == null)
         {
-            Debug.Log("공격할 대상이 없습니다.");
+            
             return;
         }
 
         if (target.playerId == playerId)
         {
-            Debug.Log("아군을 공격할 수 없습니다.");
+            
             return;
         }
 
         int distance = GetDistanceToUnit(target);
         if (distance > attackRange + 0.1f) // 오차 허용
         {
-            Debug.Log($"공격 범위를 벗어났습니다. 거리: {distance}, 공격 범위: {attackRange}");
+            
             return;
         }
 
         // --- 애니메이션 실행 로그 ---
-        Debug.Log($"[Animation Log] Attack method entered for {name}. Trying to find Animator.");
+        
         Animator animator = GetComponentInChildren<Animator>();
         if (animator != null)
         {
-            Debug.Log("[Animation Log] Animator found! Setting 'doAttack' trigger.");
+            
             animator.SetTrigger("doAttack");
         }
         else
@@ -89,7 +89,7 @@ public class Unit : MonoBehaviour
         hasAttacked = true;
         
         OnAttack?.Invoke(this, target);
-        Debug.Log($"유닛 {name}이(가) {target.name}을(를) 공격했습니다!");
+        
     }
 
     public int GetDistanceToUnit(Unit target)
@@ -124,12 +124,12 @@ public class Unit : MonoBehaviour
     public void PlaceUnit(HexTile tile)
     {
         currentTile = FindFirstObjectByType<HexGrid>().GetTileAt(tile.coordinates);
-        Debug.Log($"[배치] unit.currentTile set: {currentTile != null}, tile: {tile.coordinates}");
+        
     }
 
     public void MoveUnit(HexTile targetTile)
     {
         currentTile = FindFirstObjectByType<HexGrid>().GetTileAt(targetTile.coordinates);
-        Debug.Log($"[이동] unit.currentTile set: {currentTile != null}, tile: {targetTile.coordinates}");
+        
     }
 }
