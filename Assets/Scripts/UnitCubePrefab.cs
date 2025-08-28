@@ -31,7 +31,7 @@ public class UnitCubePrefab : MonoBehaviour
         
         PrefabUtility.SaveAsPrefabAsset(hexTile, "Assets/Prefabs/HexTile.prefab");
         DestroyImmediate(hexTile);
-        Debug.Log("HexTile.prefab has been created in Assets/Prefabs");
+        
     }
 
     static Mesh CreateHexMesh()

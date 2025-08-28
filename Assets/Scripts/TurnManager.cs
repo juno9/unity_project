@@ -27,6 +27,8 @@ public class TurnManager : MonoBehaviour
 
     private List<Unit> player1Units = new List<Unit>();
     private List<Unit> player2Units = new List<Unit>();
+    private Base player1Base;
+    private Base player2Base;
     private CameraController cameraController; // 카메라 컨트롤러 참조
     private FogOfWar fogOfWar; // 전장의 안개 참조
     private Coroutine turnTimerCoroutine; // 턴 타이머 코루틴
@@ -64,14 +66,14 @@ public class TurnManager : MonoBehaviour
     public void RegisterCameraController(CameraController controller)
     {
         cameraController = controller;
-        Debug.Log("카메라 컨트롤러가 TurnManager에 등록되었습니다.");
+        
     }
 
     // 전장의 안개 등록
     public void RegisterFogOfWar(FogOfWar fog)
     {
         fogOfWar = fog;
-        Debug.Log("전장의 안개가 TurnManager에 등록되었습니다.");
+        
     }
 
     private void CreateUI()
@@ -203,9 +205,9 @@ public class TurnManager : MonoBehaviour
         
         if (CamController != null)
         {
-            if (player1Units.Count > 0)
+            if (player1Base != null)
             {
-                CamController.TransitionToPlayerView(player1Units[0].transform.position, 1);
+                CamController.TransitionToPlayerView(player1Base.transform.position, 1);
             }
         }
         
@@ -216,7 +218,7 @@ public class TurnManager : MonoBehaviour
         
         UpdateButtonColors();
         StartTurnTimer();
-        Debug.Log("첫 턴(플레이어 1)이 시작되었습니다.");
+        
     }
 
     private void StartTurnTimer()
@@ -290,6 +292,18 @@ public class TurnManager : MonoBehaviour
             player2Units.Remove(unit);
     }
 
+    public void RegisterBase(Base b)
+    {
+        if (b.playerId == 1)
+        {
+            player1Base = b;
+        }
+        else
+        {
+            player2Base = b;
+        }
+    }
+
     public void ShowUnitInfo(Unit unit)
     {
         if (unit == null)
@@ -307,9 +321,22 @@ public class TurnManager : MonoBehaviour
                            $"공격 가능: {(unit.hasAttacked ? "불가" : "가능")}";
     }
 
+    public void ShowBaseInfo(Base b)
+    {
+        if (b == null)
+        {
+            unitInfoPanel.SetActive(false);
+            return;
+        }
+
+        unitInfoPanel.SetActive(true);
+        unitInfoText.text = $"플레이어 {b.playerId} 거점";
+    }
+
     public void EndTurn()
     {
-        Debug.Log("턴 종료 호출됨");
+        ShowUnitInfo(null);
+        
         if (turnTimerCoroutine != null)
         {
             StopCoroutine(turnTimerCoroutine);
@@ -328,13 +355,13 @@ public class TurnManager : MonoBehaviour
         ResetAP();
         
         // 카메라 전환
-        Debug.Log($"[Camera Log] 카메라 전환 시도: cameraController={(CamController != null)}, targetPlayer={currentPlayer}");
+        
         if (CamController != null)
         {
-            List<Unit> nextPlayerUnits = (currentPlayer == 1) ? player1Units : player2Units;
-            if (nextPlayerUnits.Count > 0)
+            Base nextPlayerBase = (currentPlayer == 1) ? player1Base : player2Base;
+            if (nextPlayerBase != null)
             {
-                CamController.TransitionToPlayerView(nextPlayerUnits[0].transform.position, currentPlayer);
+                CamController.TransitionToPlayerView(nextPlayerBase.transform.position, currentPlayer);
             }
         }
         else
@@ -356,7 +383,7 @@ public class TurnManager : MonoBehaviour
         UpdateButtonColors();
         StartTurnTimer();
         
-        Debug.Log($"플레이어 {previousPlayer}의 턴이 종료되고 플레이어 {currentPlayer}의 턴이 시작되었습니다.");
+        
     }
 
     public bool SpendAP(int amount)
@@ -406,4 +433,4 @@ public class TurnManager : MonoBehaviour
     {
         return playerId == 1 ? player2Units : player1Units;
     }
-} 
+}

@@ -37,14 +37,14 @@ public class GameInitializer : MonoBehaviour
     
     private System.Collections.IEnumerator InitializeGame()
     {
-        Debug.Log("게임 초기화 시작...");
+        
         
         // 플레이어 1 거점 및 유닛 배치
         yield return StartCoroutine(SpawnBaseAndUnit(1, player1Ranged));
         // 플레이어 2 거점 및 유닛 배치
         yield return StartCoroutine(SpawnBaseAndUnit(2, player2Ranged));
 
-        Debug.Log($"게임 초기화 완료! 플레이어 1, 2 거점 및 유닛 생성됨");
+        
         
         // TurnManager를 통해 첫 턴 시작
         if (TurnManager.Instance != null)
@@ -52,9 +52,9 @@ public class GameInitializer : MonoBehaviour
             TurnManager.Instance.StartFirstTurn();
         }
         // Base 생성이 완료된 후 카메라 초기 시점 설정
-        Debug.Log($"[Camera Log] GameInitializer: Bases should be spawned now. Checking for Base objects before camera transition.");
+        
         Base[] basesBeforeTransition = FindObjectsByType<Base>(FindObjectsSortMode.None);
-        Debug.Log($"[Camera Log] GameInitializer: Found {basesBeforeTransition.Length} Base objects before calling TransitionToPlayerView.");
+        
         
         CameraController cameraController = FindFirstObjectByType<CameraController>();
         if (cameraController != null)
@@ -159,6 +159,16 @@ public class GameInitializer : MonoBehaviour
             playerBase.currentTile = spawnTile;
             spawnTile.baseOnTile = playerBase;
 
+            if (TurnManager.Instance != null)
+            {
+                TurnManager.Instance.RegisterBase(playerBase);
+            }
+
+            if (TurnManager.Instance != null)
+            {
+                TurnManager.Instance.RegisterBase(playerBase);
+            }
+
             // 기지에 LineRenderer 추가
             if (baseObject.GetComponent<LineRenderer>() == null)
             {
@@ -166,19 +176,19 @@ public class GameInitializer : MonoBehaviour
             }
 
             // 기지 타일 색상 변경 (녹색)
-            Debug.Log($"[GameInitializer] 플레이어 {playerId} 기지 타일 색상 변경 시도: {spawnTile.coordinates} -> Green");
+            
             spawnTile.SetColor(Color.green);
-            Debug.Log($"[GameInitializer] 플레이어 {playerId} 기지 생성됨: {baseObject.name} at {spawnTile.coordinates}. 현재 타일 색상: {spawnTile.GetComponent<MeshRenderer>().material.color}");
+            
 
             // 기지 타일 테두리 색상 변경
             TileBorder tileBorder = spawnTile.GetComponent<TileBorder>();
             if (tileBorder != null)
             {
                 tileBorder.SetBorderColor(playerColor);
-                Debug.Log($"[GameInitializer] 플레이어 {playerId} 기지 타일 테두리 색상 변경 완료: {playerColor}");
+                
             }
 
-            SpawnUnit(spawnTile, playerId, playerColor, isRanged);
+            // SpawnUnit(spawnTile, playerId, playerColor, isRanged); // 주석 처리
             yield return null;
         }
         else
@@ -226,7 +236,7 @@ public class GameInitializer : MonoBehaviour
         
         spawnedUnits.Add(unit);
         
-        Debug.Log($"플레이어 {playerId} {(isRanged ? "원거리" : "근거리")} 유닛 생성됨: {unitObject.name} at {tile.coordinates}");
+        
     }
     
     
