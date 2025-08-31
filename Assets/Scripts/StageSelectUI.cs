@@ -23,9 +23,19 @@ public class StageSelectUI : MonoBehaviour
     private Image stageImage;
     private TextMeshProUGUI descriptionText;
     private Button startNegotiationButton;
+    private Ingame1Manager ingame1Manager; // Ingame1Manager 참조 추가
 
     void Start()
     {
+        // 씬에 있는 Ingame1Manager를 찾아서 연결합니다.
+        ingame1Manager = FindObjectOfType<Ingame1Manager>();
+        if (ingame1Manager == null)
+        {
+            Debug.LogError("Ingame1Manager가 씬에 존재하지 않습니다! Ingame1Manager 오브젝트를 추가해주세요.");
+            // Ingame1Manager가 없으면 비디오 전환을 할 수 없으므로 여기서 멈춥니다.
+            return;
+        }
+
         InitializeData();
         CreateUI();
     }
@@ -266,9 +276,22 @@ public class StageSelectUI : MonoBehaviour
 
         startNegotiationButton.onClick.RemoveAllListeners();
         startNegotiationButton.onClick.AddListener(() => {
-            Debug.Log("협상 시작: " + data.stageName);
-            CurrentStageDataHolder.currentStageName = data.stageName;
-            SceneManager.LoadScene("InGame2");
+            // 현재 선택된 스테이지의 인덱스를 찾습니다.
+            int stageIndex = stageDataList.IndexOf(data);
+
+            if (ingame1Manager != null && stageIndex != -1)
+            {
+                Debug.Log($"협상 시작: {data.stageName} (Stage Index: {stageIndex})");
+                CurrentStageDataHolder.currentStageName = data.stageName;
+                // Ingame1Manager를 통해 비디오 재생과 함께 씬을 전환합니다.
+                ingame1Manager.StartNegotiationForStage(stageIndex);
+            }
+            else
+            {
+                Debug.LogError("Ingame1Manager를 찾을 수 없거나 스테이지 인덱스가 잘못되었습니다. 씬을 직접 로드합니다.");
+                // 비상시 이전처럼 직접 씬 로드
+                SceneManager.LoadScene("InGame2");
+            }
         });
     }
 }
