@@ -267,6 +267,7 @@ public class StageSelectUI : MonoBehaviour
         startNegotiationButton.onClick.RemoveAllListeners();
         startNegotiationButton.onClick.AddListener(() => {
             Debug.Log("협상 시작: " + data.stageName);
+            CurrentStageDataHolder.currentStageName = data.stageName;
             SceneManager.LoadScene("InGame2");
         });
     }

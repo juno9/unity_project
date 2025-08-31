@@ -332,7 +332,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &478889522
+--- !u!1 &449962263
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -340,56 +340,43 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 478889524}
-  - component: {fileID: 478889523}
-  - component: {fileID: 478889525}
+  - component: {fileID: 449962265}
+  - component: {fileID: 449962264}
   m_Layer: 0
-  m_Name: NegotitationManager
+  m_Name: UIbuilder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &478889523
+--- !u!114 &449962264
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 478889522}
+  m_GameObject: {fileID: 449962263}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ee17d1a5132ec4947b48a3728224bbc2, type: 3}
+  m_Script: {fileID: 11500000, guid: 497ad4bf7ef7fce41b65074ed80feab5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!4 &478889524
+  defaultFontAsset: {fileID: 11400000, guid: acaa5bc0d46f394429d7bb9317dddb42, type: 2}
+--- !u!4 &449962265
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 478889522}
+  m_GameObject: {fileID: 449962263}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.25288, y: -3.2277765, z: 2.3674574}
+  m_LocalPosition: {x: 8.102558, y: -10.89407, z: 19.306}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &478889525
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 478889522}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 73d3a0f22bd55a94783050cdbcc79b38, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  koreanFontAsset: {fileID: 11400000, guid: acaa5bc0d46f394429d7bb9317dddb42, type: 2}
 --- !u!1 &519542529
 GameObject:
   m_ObjectHideFlags: 0
@@ -441,5 +428,5 @@ SceneRoots:
   m_Roots:
   - {fileID: 425594329}
   - {fileID: 347644947}
-  - {fileID: 478889524}
   - {fileID: 519542531}
+  - {fileID: 449962265}
