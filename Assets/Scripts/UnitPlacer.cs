@@ -439,6 +439,8 @@ public class UnitPlacer : MonoBehaviour
             // 유닛 배치 후 안개 갱신
             TurnManager.Instance.UpdateFogOfWar();
 
+            // 드래그 선택 시스템에 새로운 유닛을 알립니다.
+            FindObjectOfType<UnitSelection>()?.RefreshUnitList();
             
         }
     }
