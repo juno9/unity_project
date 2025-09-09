@@ -71,8 +71,8 @@ public class FogOfWar : MonoBehaviour
     private HashSet<HexTile> GetVisibleTiles()
     {
         HashSet<HexTile> visibleTiles = new HashSet<HexTile>();
-        Unit[] allUnits = FindObjectsOfType<Unit>();
-        Base[] allBases = FindObjectsOfType<Base>();
+        Unit[] allUnits = FindObjectsByType<Unit>(FindObjectsSortMode.None);
+        Base[] allBases = FindObjectsByType<Base>(FindObjectsSortMode.None);
 
         // 유닛 시야 추가
         foreach (Unit unit in allUnits)

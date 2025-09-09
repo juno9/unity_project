@@ -36,7 +36,7 @@ public class CameraController : MonoBehaviour
 
     void SetupBoundaries()
     {
-        HexGrid hexGrid = FindObjectOfType<HexGrid>();
+        HexGrid hexGrid = FindFirstObjectByType<HexGrid>();
         if (hexGrid != null)
         {
             cameraTarget = hexGrid.GetMapCenter();

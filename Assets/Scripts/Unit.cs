@@ -41,7 +41,14 @@ public class Unit : MonoBehaviour
         if (selectionIndicator != null)
         {
             selectionIndicator.SetActive(isSelected);
+            // --- DEBUG: Verify the indicator's active state ---
+            Debug.Log($"[Unit Debug] {gameObject.name}: selectionIndicator.SetActive({isSelected}) called. Indicator active state is now: {selectionIndicator.activeSelf}");
         }
+        else
+        {
+            Debug.LogWarning($"[Unit Debug] {gameObject.name}: selectionIndicator is NULL!");
+        }
+
         // If selected, hide hover indicator
         if (isSelected && hoverIndicator != null)
         {
@@ -57,7 +64,6 @@ public class Unit : MonoBehaviour
         {
             hoverIndicator.SetActive(hovering);
         }
-        Debug.Log($"[Unit] {gameObject.name} - SetHover: {hovering} (isSeleced: {isSelected})");
     }
 
     public void TakeDamage(int damage)
