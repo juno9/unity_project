@@ -439,6 +439,8 @@ public class UnitPlacer : MonoBehaviour
             // 유닛 배치 후 안개 갱신
             TurnManager.Instance.UpdateFogOfWar();
 
+            // 드래그 선택 시스템에 새로운 유닛을 알립니다.
+            FindFirstObjectByType<UnitSelection>()?.RefreshUnitList();
             
         }
     }
@@ -815,20 +817,7 @@ public class UnitPlacer : MonoBehaviour
             else if (hitTile != null)
             {
                 // Clicked on a tile
-                if (selectedUnit != null && isMoving && !selectedUnit.hasMoved && moveRangeTiles.Contains(hitTile) && hitTile.unitOnTile == null)
-                {
-                    // A unit is selected and the clicked tile is in move range and empty.
-                    if (TurnManager.Instance.SpendAP(TurnManager.MOVE_COST))
-                    {
-                        MoveUnit(hitTile);
-                        DeselectAndCancel();
-                    }
-                    else
-                    {
-                        ShowGuideText("AP가 부족하여 이동할 수 없습니다.");
-                    }
-                }
-                else if (isAttacking && selectedUnit != null)
+                if (isAttacking && selectedUnit != null)
                 {
                     // If in attack mode, and the tile has an enemy, attack it.
                     if (hitTile.unitOnTile != null && hitTile.unitOnTile.playerId != selectedUnit.playerId)
@@ -894,7 +883,7 @@ public class UnitPlacer : MonoBehaviour
         DeselectAndCancel();
     }
 
-    private void SelectUnit(Unit unit)
+    public void SelectUnit(Unit unit)
     {
         DeselectAndCancel(); // Clear previous state first.
 

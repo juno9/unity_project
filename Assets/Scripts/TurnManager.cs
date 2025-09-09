@@ -39,7 +39,7 @@ public class TurnManager : MonoBehaviour
         {
             if (cameraController == null)
             {
-                cameraController = FindObjectOfType<CameraController>();
+                cameraController = FindFirstObjectByType<CameraController>();
             }
             return cameraController;
         }

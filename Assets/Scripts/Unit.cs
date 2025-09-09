@@ -13,6 +13,11 @@ public class Unit : MonoBehaviour
     public bool hasAttacked = false;
     public HexTile currentTile;
 
+    [Header("Selection")]
+    public bool isSelected = false;
+    public GameObject selectionIndicator; // Assign in Inspector
+    public GameObject hoverIndicator; // Assign in Inspector
+
     public System.Action<Unit, Unit> OnAttack;
     public System.Action<Unit> OnDeath;
 
@@ -23,6 +28,41 @@ public class Unit : MonoBehaviour
         if (GetComponent<HealthText>() == null)
         {
             gameObject.AddComponent<HealthText>();
+        }
+
+        // Hide indicators at start
+        if (selectionIndicator != null) selectionIndicator.SetActive(false);
+        if (hoverIndicator != null) hoverIndicator.SetActive(false);
+    }
+
+    public void SetSelected(bool selected)
+    {
+        isSelected = selected;
+        if (selectionIndicator != null)
+        {
+            selectionIndicator.SetActive(isSelected);
+            // --- DEBUG: Verify the indicator's active state ---
+            Debug.Log($"[Unit Debug] {gameObject.name}: selectionIndicator.SetActive({isSelected}) called. Indicator active state is now: {selectionIndicator.activeSelf}");
+        }
+        else
+        {
+            Debug.LogWarning($"[Unit Debug] {gameObject.name}: selectionIndicator is NULL!");
+        }
+
+        // If selected, hide hover indicator
+        if (isSelected && hoverIndicator != null)
+        {
+            hoverIndicator.SetActive(false);
+        }
+        Debug.Log($"[Unit] {gameObject.name} - SetSelected: {isSelected}");
+    }
+
+    public void SetHover(bool hovering)
+    {
+        // Only show hover if not already selected
+        if (hoverIndicator != null && !isSelected)
+        {
+            hoverIndicator.SetActive(hovering);
         }
     }
 
@@ -123,13 +163,26 @@ public class Unit : MonoBehaviour
 
     public void PlaceUnit(HexTile tile)
     {
+        if (tile == null) return;
+
         currentTile = FindFirstObjectByType<HexGrid>().GetTileAt(tile.coordinates);
-        
+        if (currentTile != null)
+        {
+            // 타일의 월드 좌표를 사용하여 유닛의 실제 위치를 설정합니다.
+            // Y값에 오프셋을 주어 타일 위에 서 있도록 합니다.
+            transform.position = currentTile.position + new Vector3(0, 0.5f, 0);
+        }
     }
 
     public void MoveUnit(HexTile targetTile)
     {
+        if (targetTile == null) return;
+
         currentTile = FindFirstObjectByType<HexGrid>().GetTileAt(targetTile.coordinates);
-        
+        if (currentTile != null)
+        {
+            // 타일의 월드 좌표를 사용하여 유닛의 실제 위치를 설정합니다.
+            transform.position = currentTile.position + new Vector3(0, 0.5f, 0);
+        }
     }
 }
