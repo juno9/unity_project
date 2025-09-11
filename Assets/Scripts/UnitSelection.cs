@@ -79,12 +79,19 @@ public class UnitSelection : MonoBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit))
         { 
             Unit clickedUnit = hit.collider.GetComponentInParent<Unit>();
-            unitPlacer.SelectUnit(clickedUnit);
+            if (clickedUnit != null)
+            {
+                unitPlacer.SelectUnit(new List<Unit> { clickedUnit });
+            }
+            else
+            {
+                unitPlacer.SelectUnit(new List<Unit>());
+            }
         }
         else
         {
             // 씬의 빈 공간을 클릭하면 모두 선택 해제합니다.
-            unitPlacer.SelectUnit(null);
+            unitPlacer.SelectUnit(new List<Unit>());
         }
     }
 
@@ -92,7 +99,7 @@ public class UnitSelection : MonoBehaviour
     {
         Rect selectionRect = GetScreenRect(startPosition, Input.mousePosition);
         
-        Unit firstSelectedUnit = null;
+        List<Unit> newlySelectedUnits = new List<Unit>();
         
         foreach (var unit in allUnits)
         {
@@ -102,16 +109,11 @@ public class UnitSelection : MonoBehaviour
 
             if (selectionRect.Contains(screenPos))
             {
-                if(firstSelectedUnit == null)
-                {
-                    firstSelectedUnit = unit;
-                }
+                newlySelectedUnits.Add(unit);
             }
         }
         
-        // 드래그 결과로 유닛이 하나라도 찾아졌다면 그 첫번째 유닛의 UI를 띄우고,
-        // 아무도 없었다면 선택을 해제합니다.
-        unitPlacer.SelectUnit(firstSelectedUnit);
+        unitPlacer.SelectUnit(newlySelectedUnits);
     }
 
     void OnGUI()
