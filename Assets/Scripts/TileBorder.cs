@@ -14,7 +14,12 @@ public class TileBorder : MonoBehaviour
 
     private void InitializeLineRenderer()
     {
-        lineRenderer = gameObject.AddComponent<LineRenderer>();
+        // LineRenderer가 이미 있는지 확인하고, 없으면 추가합니다.
+        lineRenderer = GetComponent<LineRenderer>();
+        if (lineRenderer == null)
+        {
+            lineRenderer = gameObject.AddComponent<LineRenderer>();
+        }
         lineRenderer.loop = true;
         lineRenderer.useWorldSpace = false;
         lineRenderer.startWidth = lineWidth;

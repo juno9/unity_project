@@ -6,12 +6,17 @@ public class Unit : MonoBehaviour
     public int maxHealth = 10;
     public int currentHealth;
     public int attackPower = 10;
-    public int moveRange = 2;
+    public int moveRange = 6;
     public int sightRange = 4; // 시야 범위 추가
-    public int attackRange = 1;
+    public int attackRange = 15;
     public bool hasMoved = false;
     public bool hasAttacked = false;
     public HexTile currentTile;
+
+    [Header("Selection")]
+    public bool isSelected = false;
+    public GameObject selectionIndicator; // Assign in Inspector
+    public GameObject hoverIndicator; // Assign in Inspector
 
     public System.Action<Unit, Unit> OnAttack;
     public System.Action<Unit> OnDeath;
@@ -24,12 +29,47 @@ public class Unit : MonoBehaviour
         {
             gameObject.AddComponent<HealthText>();
         }
+
+        // Hide indicators at start
+        if (selectionIndicator != null) selectionIndicator.SetActive(false);
+        if (hoverIndicator != null) hoverIndicator.SetActive(false);
+    }
+
+    public void SetSelected(bool selected)
+    {
+        isSelected = selected;
+        if (selectionIndicator != null)
+        {
+            selectionIndicator.SetActive(isSelected);
+            // --- DEBUG: Verify the indicator's active state ---
+            Debug.Log($"[Unit Debug] {gameObject.name}: selectionIndicator.SetActive({isSelected}) called. Indicator active state is now: {selectionIndicator.activeSelf}");
+        }
+        else
+        {
+            Debug.LogWarning($"[Unit Debug] {gameObject.name}: selectionIndicator is NULL!");
+        }
+
+        // If selected, hide hover indicator
+        if (isSelected && hoverIndicator != null)
+        {
+            hoverIndicator.SetActive(false);
+        }
+        Debug.Log($"[Unit] {gameObject.name} - SetSelected: {isSelected}");
+    }
+
+    public void SetHover(bool hovering)
+    {
+        // Only show hover if not already selected
+        if (hoverIndicator != null && !isSelected)
+        {
+            hoverIndicator.SetActive(hovering);
+        }
     }
 
     public void TakeDamage(int damage)
     {
         currentHealth -= damage;
-        Debug.Log($"유닛 {name}이(가) {damage} 데미지를 받았습니다. 남은 체력: {currentHealth}");
+        
         
         // 데미지 텍스트 표시
         if (DamageText.Instance != null)
@@ -48,35 +88,35 @@ public class Unit : MonoBehaviour
     {
         if (hasAttacked)
         {
-            Debug.Log("이미 공격했습니다.");
+            
             return;
         }
 
         if (target == null)
         {
-            Debug.Log("공격할 대상이 없습니다.");
+            
             return;
         }
 
         if (target.playerId == playerId)
         {
-            Debug.Log("아군을 공격할 수 없습니다.");
+            
             return;
         }
 
         int distance = GetDistanceToUnit(target);
         if (distance > attackRange + 0.1f) // 오차 허용
         {
-            Debug.Log($"공격 범위를 벗어났습니다. 거리: {distance}, 공격 범위: {attackRange}");
+            
             return;
         }
 
         // --- 애니메이션 실행 로그 ---
-        Debug.Log($"[Animation Log] Attack method entered for {name}. Trying to find Animator.");
+        
         Animator animator = GetComponentInChildren<Animator>();
         if (animator != null)
         {
-            Debug.Log("[Animation Log] Animator found! Setting 'doAttack' trigger.");
+            
             animator.SetTrigger("doAttack");
         }
         else
@@ -89,7 +129,7 @@ public class Unit : MonoBehaviour
         hasAttacked = true;
         
         OnAttack?.Invoke(this, target);
-        Debug.Log($"유닛 {name}이(가) {target.name}을(를) 공격했습니다!");
+        
     }
 
     public int GetDistanceToUnit(Unit target)
@@ -123,13 +163,26 @@ public class Unit : MonoBehaviour
 
     public void PlaceUnit(HexTile tile)
     {
+        if (tile == null) return;
+
         currentTile = FindFirstObjectByType<HexGrid>().GetTileAt(tile.coordinates);
-        Debug.Log($"[배치] unit.currentTile set: {currentTile != null}, tile: {tile.coordinates}");
+        if (currentTile != null)
+        {
+            // 타일의 월드 좌표를 사용하여 유닛의 실제 위치를 설정합니다.
+            // Y값에 오프셋을 주어 타일 위에 서 있도록 합니다.
+            transform.position = currentTile.position + new Vector3(0, 0.5f, 0);
+        }
     }
 
     public void MoveUnit(HexTile targetTile)
     {
+        if (targetTile == null) return;
+
         currentTile = FindFirstObjectByType<HexGrid>().GetTileAt(targetTile.coordinates);
-        Debug.Log($"[이동] unit.currentTile set: {currentTile != null}, tile: {targetTile.coordinates}");
+        if (currentTile != null)
+        {
+            // 타일의 월드 좌표를 사용하여 유닛의 실제 위치를 설정합니다.
+            transform.position = currentTile.position + new Vector3(0, 0.5f, 0);
+        }
     }
 }

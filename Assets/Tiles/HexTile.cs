@@ -45,11 +45,11 @@ public class HexTile : MonoBehaviour
 
     public void SetColor(Color color)
     {
-        Debug.Log($"[HexTile] {coordinates} 색상 변경 시도: {color}");
+        
         if (meshRenderer != null && meshRenderer.material != null)
         {
             meshRenderer.material.color = color;
-            Debug.Log($"[HexTile] {coordinates} 색상 변경 완료: {color}");
+            
         }
     }
 
@@ -118,7 +118,7 @@ public class HexTile : MonoBehaviour
             unit.currentTile = this;
             isOccupied = true;
             unitObject.SetActive(true);
-            Debug.Log($"Unit placed at tile ({coordinates.x}, {coordinates.y})");
+            
         }
     }
 } 
