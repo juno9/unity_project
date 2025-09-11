@@ -3,6 +3,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 public class UnitPlacer : MonoBehaviour
 {
@@ -16,7 +17,7 @@ public class UnitPlacer : MonoBehaviour
     private bool isPlacing = false;
     private bool isAttacking = false; // 공격 모드 추가
     private HexTile lastHighlightedTile = null;
-    private Unit selectedUnit = null;
+    public List<Unit> selectedUnits = new List<Unit>(); // 다중 선택을 위해 리스트로 변경
     private List<HexTile> attackRangeTiles = new List<HexTile>(); // 공격 범위 타일들
     
     // 커서 관련 변수 추가
@@ -226,7 +227,8 @@ public class UnitPlacer : MonoBehaviour
     private void ShowAttackButton()
     {
         if (attackButton == null) return;
-        if (selectedUnit != null && !selectedUnit.hasAttacked)
+        var primaryUnit = selectedUnits.FirstOrDefault();
+        if (primaryUnit != null && !primaryUnit.hasAttacked)
         {
             attackButton.gameObject.SetActive(true);
         }
@@ -238,22 +240,23 @@ public class UnitPlacer : MonoBehaviour
 
     private void ShowActionButtons()
     {
-        if (selectedUnit == null) return;
+        var primaryUnit = selectedUnits.FirstOrDefault();
+        if (primaryUnit == null) return;
         // 공격 버튼만 표시
         if (attackButton != null)
         {
-            attackButton.gameObject.SetActive(!selectedUnit.hasAttacked);
+            attackButton.gameObject.SetActive(!primaryUnit.hasAttacked);
         }
         if (attackMoveButton != null)
         {
-            attackMoveButton.gameObject.SetActive(!selectedUnit.hasMoved);
+            attackMoveButton.gameObject.SetActive(!primaryUnit.hasMoved);
         }
     }
 
     private void StartAttack()
     {
-        
-        if (selectedUnit == null || selectedUnit.hasAttacked)
+        var primaryUnit = selectedUnits.FirstOrDefault();
+        if (primaryUnit == null || primaryUnit.hasAttacked)
         {
             
             return;
@@ -282,18 +285,19 @@ public class UnitPlacer : MonoBehaviour
 
     private void ShowAttackRange()
     {
-        if (selectedUnit == null) return;
+        var primaryUnit = selectedUnits.FirstOrDefault();
+        if (primaryUnit == null) return;
 
         HideAttackRange(); // 기존 범위 숨기기
 
-        List<Unit> opponentUnits = TurnManager.Instance.GetOpponentUnits(selectedUnit.playerId);
+        List<Unit> opponentUnits = TurnManager.Instance.GetOpponentUnits(primaryUnit.playerId);
         if (opponentUnits == null) return;
 
         foreach (Unit opponent in opponentUnits)
         {
             if (opponent == null || opponent.currentTile == null) continue;
 
-            if (selectedUnit.CanAttack(opponent))
+            if (primaryUnit.CanAttack(opponent))
             {
                 opponent.currentTile.SetHighlight(new Color(1f, 0.2f, 0.2f, 0.7f)); // 반투명 빨간색
                 attackRangeTiles.Add(opponent.currentTile);
@@ -315,15 +319,16 @@ public class UnitPlacer : MonoBehaviour
 
     private void HandleAttackClick(HexTile clickedTile)
     {
+        var primaryUnit = selectedUnits.FirstOrDefault();
         // isAttacking 확인 로직을 제거하여 컨텍스트 메뉴(우클릭)를 통한 공격을 허용합니다.
-        if (selectedUnit == null || clickedTile == null) return;
+        if (primaryUnit == null || clickedTile == null) return;
 
         Unit targetUnit = clickedTile.unitOnTile;
-        if (targetUnit != null && targetUnit.playerId != selectedUnit.playerId)
+        if (targetUnit != null && targetUnit.playerId != primaryUnit.playerId)
         {
-            if (selectedUnit.CanAttack(targetUnit))
+            if (primaryUnit.CanAttack(targetUnit))
             {
-                selectedUnit.Attack(targetUnit);
+                primaryUnit.Attack(targetUnit);
                 TurnManager.Instance.UpdateFogOfWar(); // 공격 후 안개 갱신
                 DeselectAndCancel(); // 상태 초기화
             }
@@ -361,7 +366,7 @@ public class UnitPlacer : MonoBehaviour
                 unit = newUnit.AddComponent<Unit>();
             }
             unit.playerId = TurnManager.Instance.currentPlayer;
-            unit.attackRange = isRangedPlacing ? 10 : 1; // 원거리/근거리 구분
+            unit.attackRange = isRangedPlacing ? 20 : 10; // 원거리/근거리 구분
 
             // 플레이어 ID에 따라 다른 머티리얼 적용
             var renderer = newUnit.GetComponentInChildren<SkinnedMeshRenderer>();
@@ -458,10 +463,10 @@ public class UnitPlacer : MonoBehaviour
         return null;
     }
 
-    private void MoveUnit(HexTile targetTile)
+    private void MoveUnit(Unit unit, HexTile targetTile)
     {
-        if (selectedUnit == null) {  return; }
-        HexTile currentTile = hexGrid.GetTileAt(selectedUnit.currentTile.coordinates);
+        if (unit == null) {  return; }
+        HexTile currentTile = hexGrid.GetTileAt(unit.currentTile.coordinates);
         targetTile = hexGrid.GetTileAt(targetTile.coordinates);
         if (currentTile == null) {  return; }
         if (targetTile == null) {  return; }
@@ -473,7 +478,7 @@ public class UnitPlacer : MonoBehaviour
         if (path.Count < 2) {  return; }
         
         currentTile.unitOnTile = null;
-        StartCoroutine(MoveUnitAlongPath(selectedUnit, path, targetTile));
+        StartCoroutine(MoveUnitAlongPath(unit, path, targetTile));
     }
 
     private IEnumerator MoveUnitAlongPath(Unit unit, List<HexTile> path, HexTile targetTile)
@@ -512,7 +517,7 @@ public class UnitPlacer : MonoBehaviour
             }
         }
 
-        selectedUnit = null;
+        DeselectAndCancel();
         
 
         // 유닛 이동 후 안개 갱신
@@ -645,7 +650,8 @@ public class UnitPlacer : MonoBehaviour
 
     private void ShowMoveRange()
     {
-        if (selectedUnit == null || selectedUnit.currentTile == null) return;
+        var primaryUnit = selectedUnits.FirstOrDefault();
+        if (primaryUnit == null || primaryUnit.currentTile == null) return;
 
         HideMoveRange(); // 기존 범위 숨기기
 
@@ -657,11 +663,11 @@ public class UnitPlacer : MonoBehaviour
             // 빈 타일만 이동 가능
             if (tile.unitOnTile == null)
             {
-                int distance = selectedUnit.currentTile.GetDistanceTo(tile);
-                if (distance <= selectedUnit.moveRange && distance > 0)
+                int distance = primaryUnit.currentTile.GetDistanceTo(tile);
+                if (distance <= primaryUnit.moveRange && distance > 0)
                 {
                     // 플레이어 색상으로 하이라이트
-                    Color playerColor = selectedUnit.playerId == 1 ? player1Color : player2Color;
+                    Color playerColor = primaryUnit.playerId == 1 ? player1Color : player2Color;
                     tile.SetHighlight(playerColor);
                     moveRangeTiles.Add(tile);
                 }
@@ -729,8 +735,9 @@ public class UnitPlacer : MonoBehaviour
     private void HandleCursorState()
     {
         hoveredAttackTarget = null; // 매번 초기화
+        var primaryUnit = selectedUnits.FirstOrDefault();
 
-        if (selectedUnit == null || selectedUnit.playerId != TurnManager.Instance.currentPlayer)
+        if (primaryUnit == null || primaryUnit.playerId != TurnManager.Instance.currentPlayer)
         {
             if (isAttackCursorSet)
             {
@@ -745,7 +752,7 @@ public class UnitPlacer : MonoBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit, 100f))
         {
             Unit targetUnit = hit.collider.GetComponentInParent<Unit>();
-            if (targetUnit != null && targetUnit.playerId != selectedUnit.playerId && !selectedUnit.hasAttacked && selectedUnit.CanAttack(targetUnit))
+            if (targetUnit != null && targetUnit.playerId != primaryUnit.playerId && !primaryUnit.hasAttacked && primaryUnit.CanAttack(targetUnit))
             {
                 shouldBeAttackCursor = true;
                 hoveredAttackTarget = targetUnit; // 유효한 공격 대상 저장
@@ -796,8 +803,9 @@ public class UnitPlacer : MonoBehaviour
             }
             else if (hitUnit != null)
             {
+                var primaryUnit = selectedUnits.FirstOrDefault();
                 // Clicked on a unit
-                if (isAttacking && selectedUnit != null && selectedUnit.playerId != hitUnit.playerId && selectedUnit.CanAttack(hitUnit))
+                if (isAttacking && primaryUnit != null && primaryUnit.playerId != hitUnit.playerId && primaryUnit.CanAttack(hitUnit))
                 {
                     // If in attack mode and clicked a valid enemy, attack it.
                     HandleAttackClick(hitUnit.currentTile);
@@ -805,7 +813,7 @@ public class UnitPlacer : MonoBehaviour
                 else if (hitUnit.playerId == TurnManager.Instance.currentPlayer)
                 {
                     // Clicked a friendly unit, select it.
-                    SelectUnit(hitUnit);
+                    SelectUnit(new List<Unit> { hitUnit });
                 }
                 else
                 {
@@ -817,10 +825,11 @@ public class UnitPlacer : MonoBehaviour
             else if (hitTile != null)
             {
                 // Clicked on a tile
-                if (isAttacking && selectedUnit != null)
+                var primaryUnit = selectedUnits.FirstOrDefault();
+                if (isAttacking && primaryUnit != null)
                 {
                     // If in attack mode, and the tile has an enemy, attack it.
-                    if (hitTile.unitOnTile != null && hitTile.unitOnTile.playerId != selectedUnit.playerId)
+                    if (hitTile.unitOnTile != null && hitTile.unitOnTile.playerId != primaryUnit.playerId)
                     {
                         HandleAttackClick(hitTile);
                     }
@@ -841,67 +850,164 @@ public class UnitPlacer : MonoBehaviour
 
     private void HandleRightClickAction()
     {
-        if (selectedUnit == null)
+        if (selectedUnits.Count == 0) 
         {
             DeselectAndCancel();
             return;
         }
 
-        // 마우스 오버로 확인된 공격 대상이 있으면 즉시 공격
-        if (hoveredAttackTarget != null && !selectedUnit.hasAttacked)
+        var primaryUnit = selectedUnits.FirstOrDefault();
+        if (primaryUnit.hasMoved || primaryUnit.playerId != TurnManager.Instance.currentPlayer)
+        {
+            return;
+        }
+
+        // 1. 공격 처리
+        if (hoveredAttackTarget != null && !primaryUnit.hasAttacked && primaryUnit.CanAttack(hoveredAttackTarget))
         {
             HandleAttackClick(hoveredAttackTarget.currentTile);
             DeselectAndCancel();
             return;
         }
 
-        // 공격 대상이 없으면 이동 로직 처리
+        // 2. 이동 처리
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit, 100f))
         {
-            if (isMoving && !selectedUnit.hasMoved)
+            HexTile clickedTile = hit.collider.GetComponent<HexTile>();
+            if (clickedTile != null)
             {
-                HexTile clickedTile = hit.collider.GetComponent<HexTile>();
-                if (clickedTile != null && moveRangeTiles.Contains(clickedTile) && clickedTile.unitOnTile == null)
+                MoveSelectedUnits(clickedTile);
+            }
+        }
+    }
+
+    private void MoveSelectedUnits(HexTile destination)
+    {
+        var primaryUnit = selectedUnits.FirstOrDefault();
+        if (primaryUnit == null) return;
+
+        // 1. Calculate centroid of selected units
+        Vector2 centroidFloat = Vector2.zero;
+        foreach (var unit in selectedUnits)
+        {
+            centroidFloat += unit.currentTile.coordinates;
+        }
+        centroidFloat /= selectedUnits.Count;
+        Vector2Int centroid = new Vector2Int(Mathf.RoundToInt(centroidFloat.x), Mathf.RoundToInt(centroidFloat.y));
+
+        // 2. Calculate offsets from centroid
+        List<Vector2Int> offsets = new List<Vector2Int>();
+        foreach (var unit in selectedUnits)
+        {
+            offsets.Add(unit.currentTile.coordinates - centroid);
+        }
+
+        // 3. Determine target tiles and move units
+        for (int i = 0; i < selectedUnits.Count; i++)
+        {
+            var unit = selectedUnits[i];
+            if (unit.hasMoved) continue;
+
+            Vector2Int targetCoordinates = destination.coordinates + offsets[i];
+            HexTile targetTile = hexGrid.GetTileAt(targetCoordinates);
+
+            // Find an available tile if the target is occupied
+            if (targetTile == null || targetTile.unitOnTile != null)
+            {
+                targetTile = FindAvailableTile(targetCoordinates);
+            }
+
+            if (targetTile != null)
+            {
+                var path = hexGrid.FindPath(unit.currentTile, targetTile);
+                if (path != null && path.Count > 1)
                 {
-                    if (TurnManager.Instance.SpendAP(TurnManager.MOVE_COST))
+                    if (path.Count - 1 <= unit.moveRange)
                     {
-                        MoveUnit(clickedTile);
-                        DeselectAndCancel();
-                        return;
+                        if (TurnManager.Instance.SpendAP(TurnManager.MOVE_COST))
+                        {
+                            MoveUnit(unit, targetTile);
+                        }
                     }
                     else
                     {
-                        ShowGuideText("AP가 부족하여 이동할 수 없습니다.");
-                        return;
+                        HexTile furthestTile = path[unit.moveRange];
+                        if (TurnManager.Instance.SpendAP(TurnManager.MOVE_COST))
+                        {
+                            MoveUnit(unit, furthestTile);
+                        }
                     }
                 }
             }
         }
-
-        // 유효한 행동이 아니면 선택 취소
         DeselectAndCancel();
     }
 
-    public void SelectUnit(Unit unit)
+    private HexTile FindAvailableTile(Vector2Int startCoordinates)
+    {
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+        queue.Enqueue(startCoordinates);
+        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
+        visited.Add(startCoordinates);
+
+        int[][] evenDirs = new int[][] { new[]{+1,0}, new[]{0,-1}, new[]{-1,-1}, new[]{-1,0}, new[]{-1,+1}, new[]{0,+1} };
+        int[][] oddDirs  = new int[][] { new[]{+1,0}, new[]{+1,-1}, new[]{0,-1}, new[]{-1,0}, new[]{0,+1}, new[]{+1,+1} };
+
+        while (queue.Count > 0)
+        {
+            Vector2Int current = queue.Dequeue();
+            HexTile tile = hexGrid.GetTileAt(current);
+            if (tile != null && tile.unitOnTile == null)
+            {
+                return tile;
+            }
+
+            int[][] dirs = (current.x % 2 == 0) ? evenDirs : oddDirs;
+            foreach (var d in dirs)
+            {
+                Vector2Int neighbor = current + new Vector2Int(d[0], d[1]);
+                if (!visited.Contains(neighbor))
+                {
+                    queue.Enqueue(neighbor);
+                    visited.Add(neighbor);
+                }
+            }
+        }
+        return null;
+    }
+
+    public void SelectUnit(List<Unit> units)
     {
         DeselectAndCancel(); // Clear previous state first.
 
-        selectedUnit = unit;
-        TurnManager.Instance.ShowUnitInfo(unit);
-        ShowActionButtons();
-
-        // 유닛이 아직 움직이지 않았다면 자동으로 이동 모드로 전환하고 이동 범위를 표시합니다.
-        if (!selectedUnit.hasMoved)
+        selectedUnits = units;
+        var primaryUnit = selectedUnits.FirstOrDefault();
+        if (primaryUnit != null)
         {
-            isMoving = true;
-            ShowMoveRange();
+            foreach (var unit in selectedUnits)
+            {
+                unit.SetSelected(true);
+            }
+            TurnManager.Instance.ShowUnitInfo(primaryUnit);
+            ShowActionButtons();
+
+            // 유닛이 아직 움직이지 않았다면 자동으로 이동 모드로 전환하고 이동 범위를 표시합니다.
+            if (!primaryUnit.hasMoved)
+            {
+                isMoving = true;
+                ShowMoveRange();
+            }
         }
     }
 
     private void DeselectAndCancel()
     {
-        selectedUnit = null;
+        foreach (var unit in selectedUnits)
+        {
+            if (unit != null) unit.SetSelected(false);
+        }
+        selectedUnits.Clear();
         CancelPlacement();
         CancelAttack();
         CancelMove();
@@ -914,8 +1020,8 @@ public class UnitPlacer : MonoBehaviour
 
     private void StartAttackMove()
     {
-        
-        if (selectedUnit == null || selectedUnit.hasMoved)
+        var primaryUnit = selectedUnits.FirstOrDefault();
+        if (primaryUnit == null || primaryUnit.hasMoved)
         {
             
             return;
@@ -943,22 +1049,22 @@ public class UnitPlacer : MonoBehaviour
 
     private void HandleAttackMoveClick(HexTile clickedTile)
     {
-        if (selectedUnit == null || !isAttackMoving || clickedTile == null) return;
+        var primaryUnit = selectedUnits.FirstOrDefault();
+        if (primaryUnit == null || !isAttackMoving || clickedTile == null) return;
 
         
 
         if (clickedTile.unitOnTile == null)
         {
-            int distance = selectedUnit.currentTile.GetDistanceTo(clickedTile);
-            if (distance <= selectedUnit.moveRange && distance > 0)
+            int distance = primaryUnit.currentTile.GetDistanceTo(clickedTile);
+            if (distance <= primaryUnit.moveRange && distance > 0)
             {
                 if (TurnManager.Instance.SpendAP(TurnManager.ATTACK_MOVE_COST))
                 {
                     
                     AttackMoveUnit(clickedTile);
                     CancelAttackMove();
-                    selectedUnit = null;
-                    TurnManager.Instance.ShowUnitInfo(null);
+                    DeselectAndCancel();
                 }
                 else
                 {
@@ -978,8 +1084,9 @@ public class UnitPlacer : MonoBehaviour
 
     private void AttackMoveUnit(HexTile targetTile)
     {
-        if (selectedUnit == null) {  return; }
-        HexTile currentTile = hexGrid.GetTileAt(selectedUnit.currentTile.coordinates);
+        var primaryUnit = selectedUnits.FirstOrDefault();
+        if (primaryUnit == null) {  return; }
+        HexTile currentTile = hexGrid.GetTileAt(primaryUnit.currentTile.coordinates);
         targetTile = hexGrid.GetTileAt(targetTile.coordinates);
         if (currentTile == null) {  return; }
         if (targetTile == null) {  return; }
@@ -988,7 +1095,7 @@ public class UnitPlacer : MonoBehaviour
         if (path == null) {  return; }
         if (path.Count < 2) {  return; }
         currentTile.unitOnTile = null;
-        StartCoroutine(AttackMoveUnitAlongPath(selectedUnit, path, targetTile));
+        StartCoroutine(AttackMoveUnitAlongPath(primaryUnit, path, targetTile));
     }
 
     private IEnumerator AttackMoveUnitAlongPath(Unit unit, List<HexTile> path, HexTile targetTile)

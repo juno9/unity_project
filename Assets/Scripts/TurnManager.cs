@@ -17,7 +17,7 @@ public class TurnManager : MonoBehaviour
     public Text apText; // AP 표시 UI
     private int player1AP;
     private int player2AP;
-    public const int MAX_AP = 10;
+    public const int MAX_AP = 20;
     public const int UNIT_PLACEMENT_COST = 3;
     public const int MOVE_COST = 1;
     public const int ATTACK_MOVE_COST = 2;
